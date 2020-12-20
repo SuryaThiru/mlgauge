@@ -30,7 +30,7 @@ author = "Surya Krishnamurthy"
 # ones.
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon"]
 
-autodoc_default_options = {"special-members": "__init__"}
+autodoc_default_options = {"special-members": "__init__", "member-order": "bysource"}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
