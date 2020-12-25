@@ -11,7 +11,7 @@ from sklearn import datasets
 import joblib
 import pytest
 
-from mlgauge import Analysis, SklearnMethod
+from mlgauge import SklearnMethod
 
 
 SEED = 42
