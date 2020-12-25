@@ -31,16 +31,28 @@ class Analysis:
         """Initialize analysis.
 
         Args:
-            methods (list) : List of tuple containing the method name and a method object.
-            metric_names (list) : List of strings representing the names of the metric. The names are only used to represent the metrics output by the method objects.
+            methods (list): List of tuple containing the method name and a method object.
+            metric_names (list): List of strings representing the names of the metric. The names are only used to represent the metrics output by the method objects.
                              The size of the list should be the same as that returned by the `Method`'s instance train and test methods.
-            datasets (str or list) : One of the following options:
-                                     # TODO add a table of argument types
-            n_datasets (int) : Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is a string.
-            drop_na (bool) : If True will drop all rows in the dataset with null values.
-            random_state (None, int or RandomState instance) : seed for the PRNG.
-            use_test_set (bool) : If the methods use a testing set.
-            test_size (float) : The size of the test set. Ignored if `use_test_set` is False.
+            datasets (str or list): One of the following options:
+
+                                *"all"*: randomly select `n_datasets` from all available datasets in pmlb.
+
+                                *"classification"*: randomly select `n_datasets` from all available classification datasets in pmlb.
+
+                                *"regression"*: randomly select `n_datasets` from all available regression datasets in pmlb.
+
+                                *list of strings*: a list of valid pmlb dataset names.
+
+                                *list of (X, y) tuples*: Use the method to pass a custom dataset in the X y array format.
+
+                                *list of ((X_train, y_train), (X_test, y_test)) tuples*: Use the method to pass a custom training and testing set in the X y array format.
+            n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is a string.
+
+            drop_na (bool): If True will drop all rows in the dataset with null values.
+            random_state (None, int or RandomState instance): seed for the PRNG.
+            use_test_set (bool): If the methods use a testing set.
+            test_size (float): The size of the test set. Ignored if `use_test_set` is False.
             output_dir (str) : Path of the output directory where method artifacts will be stored. A separate directory for each method will be created inside the directory. Defaults to an "output" directory in the current working directory.
         """
         self.random_state = check_random_state(random_state)
