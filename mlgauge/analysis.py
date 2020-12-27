@@ -44,9 +44,9 @@ class Analysis:
 
                                 *list of strings*: a list of valid pmlb dataset names.
 
-                                *list of (X, y) tuples*: Use the method to pass a custom dataset in the X y array format.
+                                *list of ('dataset_name', (X, y)) tuples*: Use the method to pass a custom dataset in the X y array format.
 
-                                *list of ((X_train, y_train), (X_test, y_test)) tuples*: Use the method to pass a custom training and testing set in the X y array format.
+                                *list of ('dataset_name', (X_train, y_train), (X_test, y_test)) tuples*: Use the method to pass a custom training and testing set in the X y array format.
             n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is a string.
 
             drop_na (bool): If True will drop all rows in the dataset with null values.
@@ -84,14 +84,17 @@ class Analysis:
                 raise ValueError(
                     "String input for datasets should be one of 'all', 'classification' or 'regression'."
                 )
-        elif isinstance(d, list):
+        elif isinstance(datasets, list):
             for d in datasets:
                 if isinstance(d, str):
                     # should be a valid pmlb dataset name
                     if d not in pmlb.dataset_names:
                         raise ValueError(f"Dataset {d} not in pmlb")
                 elif isinstance(d, tuple):
-                    pass
+                    if not isinstance(d[0], str):
+                        raise ValueError(
+                            "First element of the tuple must be the name of the dataset"
+                        )
                 else:
                     raise TypeError(f"Invalid type {type(d)} for dataset.")
         else:
