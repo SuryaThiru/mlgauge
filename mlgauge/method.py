@@ -10,15 +10,20 @@ class Method:
     The baseclass for method definitions that will be used in the analysis.
     Inherit this class into your class to define your own methods.
 
+    An `Analysis` instance will dynamically set the different attributes to different values based on the dataset that is currently used. These attributes will be available to the inheriting class to provide additional information.
+
     Attributes:
         output_dir (str): Path of the directory where the outputs should be saved.
                           Will be automatically assigned by `Analysis` class.
                           When defining a method based on this class, use this attribute to save any artifacts like plots, model dumps etc.
+        feature_names (list): List of feature names of the input dataset.
+        use_test_set (bool): method implements a `test` method when set to `True`.
     """
 
     def __init__(self):
         self.use_test_set = True
         self.output_dir = os.path.join(os.getcwd(), "output")
+        self.feature_names = None
 
     def set_output_dir(self, path):
         """Set output directory to save results of the method.
@@ -29,7 +34,20 @@ class Method:
         self.output_dir = path
 
     def set_test_set(self, use_test_set):
+        """Specify if the method requires a test set.
+
+        Args:
+            use_test_set (bool): method implements a `test` method when set to `True`.
+        """
         self.use_test_set = use_test_set
+
+    def set_feature_names(self, feature_names):
+        """Specify if the method requires a test set.
+
+        Args:
+            use_test_set (bool): method implements a `test` method when set to `True`.
+        """
+        self.feature_names = feature_names
 
     def train(self, X_train, y_train):
         """Train the model and return the training score.

@@ -172,10 +172,66 @@ class Analysis:
 
     def _get_dataset(self, dataset):
         """Load and return the dataset as X, y numpy arrays"""
-        pass
+        if isinstance(dataset, str):  # Use pmlb
+            data = pmlb.fetch_data(dataset)
 
-    def run_trials(self):
-        pass
+            # Get feature names and get X,y numpy arrays
+            X = data.drop("target", axis=1)
+            y = data["target"]
+
+        elif isinstance(dataset, tuple):
+            if len(dataset) == 2:
+                dataset, (X, y) = dataset
+
+            else:  # Test set present in the inputs, will directly return
+                dataset, (X_train, y_train), (X_test, y_test) = dataset
+                feature_names = self._get_feature_names(X_train)
+                X_train, y_train = self._format_na(X_train, y_train)
+
+                if self.use_test_set:
+                    X_test, y_test = self._format_na(X_test, y_test)
+                    return dataset, feature_names, (X_train, y_train), (X_test, y_test)
+                else:
+                    return dataset, feature_names, (X_train, y_train)
+
+        if self.use_test_set:  # Perform train-test splits
+            X_train, X_test, y_train, y_test = train_test_split(
+                X,
+                y,
+                test_size=self.test_size,
+                shuffle=True,
+                random_state=self.random_state,
+            )
+            feature_names = self._get_feature_names(X_train)
+            X_train, y_train = self._format_na(X_train, y_train)
+            X_test, y_test = self._format_na(X_test, y_test)
+            return dataset, feature_names, (X_train, y_train), (X_test, y_test)
+        else:  # Directly format and return train set
+            feature_names = self._get_feature_names(X)
+            X_train, y_train = self._format_na(X, y)
+            return dataset, feature_names, (X_train, y_train)
+
+    def _get_feature_names(self, X):
+        """Get the list of feature names from input data"""
+        if hasattr(X, "columns"):
+            return X.columns.tolist()  # Dataframe column names
+        else:
+            return list(map(str, range(X.shape[1])))  # Array indices as strings
+
+    def _format_na(self, X, y):
+        """Convert data to numpy arrays and drop null valued rows"""
+        # convert to numpy arrays
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+        if isinstance(y, pd.DataFrame):
+            y = y.values
+
+        # remove rows with NaNs
+        if self.drop_na:
+            idx = ~(np.isnan(X).any(axis=1) | np.isnan(y).any())
+            X, y = X[idx], y[idx]
+
+        return X, y
 
     def get_result(self):
         return self.results

@@ -147,6 +147,40 @@ class TestDataFormat:
         )
         assert len(an.datasets) == 7
 
+
+# Test dropna
+class MockMethodNA(Method):
+    """Class to check if missing values are properly dropped."""
+
+    def __init__(self, dropna):
+        self.drop_na = dropna
+        super().__init__()
+
+    def train(self, X, y):
+        dat = np.hstack([X, y.reshape(-1, 1)])
+        if self.drop_na:
+            assert not np.isnan(dat).any(), "data has missing values"
+        else:
+            assert np.isnan(dat).any(), "data does not have missing values"
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_dropna(dropna):
+    X, y = make_regression(n_samples=200, n_features=5, random_state=SEED)
+    X[0, 2] = np.nan
+    y[3] = np.nan
+
+    an = Analysis(
+        methods=[("mock", MockMethodNA(dropna=dropna))],
+        metric_names=["r2", "max_error"],
+        datasets=[("data_with_na", (X, y))],
+        random_state=SEED,
+        drop_na=dropna,
+        use_test_set=False,
+    )
+    an.run()
+
+
 # Test output directory
 def test_output_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
