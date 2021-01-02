@@ -69,7 +69,9 @@ def test_export():
         y = np.dot(X, np.array([1, 2])) + 3
         reg = LinearRegression().fit(X, y)
 
-        skl = SklearnMethod(reg, ["neg_mean_squared_error", "r2"], export_model=True)
+        skl = SklearnMethod(
+            LinearRegression(), ["neg_mean_squared_error", "r2"], export_model=True
+        )
         skl.set_output_dir(tmpdir)
         train_scores = skl.train(X, y)
 

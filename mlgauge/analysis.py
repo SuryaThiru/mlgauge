@@ -57,7 +57,7 @@ class Analysis:
         """
         self.random_state = check_random_state(random_state)
 
-        self.methods = self._precheck_methods(methods)
+        self.__methods = self._precheck_methods(methods)
         self.metric_names = metric_names
 
         self.datasets = self._precheck_dataset(datasets)
@@ -107,9 +107,11 @@ class Analysis:
         Raises:
             TypeError: raised if the dataset argument of incorrect type is passed
         """
-        for m in methods:
+        for _, m in methods:
             if not isinstance(m, Method):
-                raise TypeError("input methods should be an instance of Method class")
+                raise TypeError(
+                    f"Input methods should be an instance of Method class, found {type(m)} instead"
+                )
         return methods
 
     def _expand_dataset_str(self, dataset_str, n_datasets):

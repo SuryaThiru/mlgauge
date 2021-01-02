@@ -1,4 +1,8 @@
+import tempfile
+import os
+
 from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 import pytest
@@ -11,11 +15,11 @@ SEED = 42
 
 @pytest.fixture
 def regressor():
-    return SklearnMethod(DummyRegressor(), ["r2_score", "max_error"])
+    return SklearnMethod(DummyRegressor(), ["r2", "max_error"])
 
 
+# Test all allowed data formats
 class TestDataFormat:
-    # TODO do run
     def test_string(self, regressor):
         # should work with "all", "classification", "regression"
         an = Analysis(
@@ -67,8 +71,14 @@ class TestDataFormat:
     def test_tuple(self, regressor):
         # should works with a list of (X, y) tuples
         datasets = [
-            ('data_1', *make_regression(n_samples=200, n_features=5, random_state=SEED)),
-            ('data_2', *make_regression(n_samples=1000, n_features=50, random_state=SEED)),
+            (
+                "data_1",
+                *make_regression(n_samples=200, n_features=5, random_state=SEED),
+            ),
+            (
+                "data_2",
+                *make_regression(n_samples=1000, n_features=50, random_state=SEED),
+            ),
         ]
         an = Analysis(
             methods=[("dummy", regressor)],
@@ -81,8 +91,14 @@ class TestDataFormat:
     def test_tuple_train_test(self, regressor):
         # should works with a list of (X_train, y_train, X_test, y_test) tuples
         datasets = [
-            ('data_1', *make_regression(n_samples=200, n_features=5, random_state=SEED)),
-            ('data_2', *make_regression(n_samples=1000, n_features=50, random_state=SEED)),
+            (
+                "data_1",
+                *make_regression(n_samples=200, n_features=5, random_state=SEED),
+            ),
+            (
+                "data_2",
+                *make_regression(n_samples=1000, n_features=50, random_state=SEED),
+            ),
         ]
 
         def test_split(data):
@@ -103,8 +119,14 @@ class TestDataFormat:
     def test_mixed(self, regressor):
         # should work with a mix of strings, tuples, tuple of tuples
         datasets = [
-            ('data_1', *make_regression(n_samples=200, n_features=5, random_state=SEED)),
-            ('data_2', *make_regression(n_samples=1000, n_features=50, random_state=SEED))
+            (
+                "data_1",
+                *make_regression(n_samples=200, n_features=5, random_state=SEED),
+            ),
+            (
+                "data_2",
+                *make_regression(n_samples=1000, n_features=50, random_state=SEED),
+            ),
         ]
 
         def test_split(data):
@@ -112,7 +134,9 @@ class TestDataFormat:
             X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=SEED)
             return name, (X_train, y_train), (X_test, y_test)
 
-        datasets = list(map(test_split, datasets)) + datasets + ["adult", "cars", "pima"]
+        datasets = (
+            list(map(test_split, datasets)) + datasets + ["adult", "cars", "pima"]
+        )
 
         an = Analysis(
             methods=[("dummy", regressor)],
