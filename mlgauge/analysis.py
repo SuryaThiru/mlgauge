@@ -47,6 +47,7 @@ class Analysis:
                                 *list of ('dataset_name', (X, y)) tuples*: Use the method to pass a custom dataset in the X y array format.
 
                                 *list of ('dataset_name', (X_train, y_train), (X_test, y_test)) tuples*: Use the method to pass a custom training and testing set in the X y array format.
+
             n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is a string.
 
             drop_na (bool): If True will drop all rows in the dataset with null values.
@@ -68,9 +69,50 @@ class Analysis:
         self.use_test_set = use_test_set
         self.test_size = test_size
 
+        # create output directory
         self.output_dir = (
             output_dir if output_dir else os.path.join(os.getcwd(), "output")
         )
+        i = 1
+        while os.path.exists(os.path.join(self.output_dir, f"Analysis_{i}")):
+            i += 1
+        self.output_dir = os.path.join(self.output_dir, f"Analysis_{i}")
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        self.results = None
+
+    def run(self):
+        """Load the datasets, run the methods and collect the results."""
+        for dataset in self.datasets:
+            if self.use_test_set:
+                (
+                    dataset_name,
+                    feature_names,
+                    (X_train, y_train),
+                    (X_test, y_test),
+                ) = self._get_dataset(dataset)
+            else:
+                dataset_name, feature_names, (X_train, y_train) = self._get_dataset(
+                    dataset
+                )
+
+            for method_name, method in self.__methods:
+                # set attributes for the dataset and method
+                method.set_test_set(self.use_test_set)
+                method.set_feature_names(feature_names)
+                # create output directory
+                output_dir = os.path.join(self.output_dir, dataset_name, method_name)
+                os.makedirs(output_dir, exist_ok=True)
+                method.set_output_dir(output_dir)
+
+                # get training scores
+                train_scores = method.train(X_train, y_train)
+
+                # get optional testing scores
+                if self.use_test_set:
+                    test_scores = method.test(X_test, y_test)
+
+        # TODO recursively remove empty directories
 
     def _precheck_dataset(self, datasets):
         """Check if the passed value for the datasets input argument is correct.

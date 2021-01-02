@@ -5,6 +5,7 @@ from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
+import numpy as np
 import pytest
 
 from mlgauge import Analysis, Method, SklearnMethod
@@ -145,3 +146,27 @@ class TestDataFormat:
             random_state=SEED,
         )
         assert len(an.datasets) == 7
+
+# Test output directory
+def test_output_dir():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        skl = SklearnMethod(
+            LinearRegression(), ["neg_mean_squared_error", "r2"], export_model=True
+        )
+        an = Analysis(
+            methods=[("dummy", skl)],
+            metric_names=["r2", "max_error"],
+            datasets=["adult", "cars", "pima"],
+            random_state=SEED,
+            output_dir=tmpdir,
+        )
+        an.run()
+
+        out_dir = os.path.join(tmpdir, "Analysis_1")
+        exports = map(
+            lambda x: os.path.join(out_dir, x, "dummy", "estimator.joblib"),
+            ["adult", "cars", "pima"],
+        )
+
+        for export in exports:
+            assert os.path.exists(export)
