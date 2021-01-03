@@ -18,12 +18,14 @@ class Method:
                           When defining a method based on this class, use this attribute to save any artifacts like plots, model dumps etc.
         feature_names (list): List of feature names of the input dataset.
         use_test_set (bool): method implements a `test` method when set to `True`.
+        cv (int): The value indicates the number of folds used when `use_test_set` is set to False.
     """
 
     def __init__(self):
         self.use_test_set = True
         self.output_dir = os.path.join(os.getcwd(), "output")
         self.feature_names = None
+        self.cv = 5  # only valid if use_test_set is False
 
     def set_output_dir(self, path):
         """Set output directory to save results of the method.
@@ -55,6 +57,9 @@ class Method:
         Args:
             X_train (array): array of training vector.
             y_train (array): array of target vector.
+
+        Raises:
+            NotImplementedError: raised when called from the base class.
         """
         raise NotImplementedError
 
@@ -64,29 +69,32 @@ class Method:
         Args:
             X_test (array): array of training vector.
             y_test (array): array of target vector.
+
+        Raises:
+            NotImplementedError: raised when called from the base class.
         """
-        if not self.use_test_set:
-            raise AttributeError(
-                "method test is not defined when use_test_set is False"
-            )
         raise NotImplementedError
 
 
 class SklearnMethod(Method):
+    """
+    A wrapper to directly use an sklearn estimator with an analysis.
+    """
+
     def __init__(self, estimator, metrics, export_model=False, cv=5):
         """Initialize sklearn method.
 
         Args:
-            estimator (estimator): An sklearn estimator or a pipeline. Refer https://scikit-learn.org/stable/modules/classes.html#module-sklearn.pipeline.
+            estimator (estimator): An sklearn estimator or a pipeline.
             metrics (list): list of metric string or an sklearn callable metric function. Refer sklearn documentation for metrics.
             export_model (bool): Exports the sklearn estimator through joblib as `estimator(_fold_k).joblib` if set to True.
-            cv (int): The cross-validation to use when use_test_set is False. Ignored otherwise.
+            cv (int): The cross-validation to use when `use_test_set` is False. Ignored otherwise.
         """
+        super().__init__()
         self.estimator = estimator
         self.metrics = metrics
         self.export_model = export_model
         self.cv = cv
-        super().__init__()
 
     def train(self, X_train, y_train):
         """Train the model and return the training score.
@@ -96,7 +104,10 @@ class SklearnMethod(Method):
             y_train (array): array of target vector.
 
         Returns:
-            scores (list): list of metric scores evaluated on the training data.
+            list: list of metric scores evaluated on the training data.
+
+        Raises:
+            AttributeError: raised when method is called with `use_test_set` set to false
         """
         if self.use_test_set:
             self.estimator.fit(X_train, y_train)
@@ -112,6 +123,8 @@ class SklearnMethod(Method):
                 scores.append(score)
             return scores
         else:
+            # TODO export models from each fold.
+            # TODO add random state to cross-validation
             scores_dict = cross_validate(
                 self.estimator, X_train, y_train, cv=self.cv, scoring=self.metrics
             )
@@ -125,7 +138,7 @@ class SklearnMethod(Method):
             y_test (array): array of target vector.
 
         Returns:
-            scores (list): list of metric scores evaluated on the testing data.
+            list: list of metric scores evaluated on the testing data.
         """
         if not self.use_test_set:
             raise AttributeError(

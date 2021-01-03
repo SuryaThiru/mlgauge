@@ -1,8 +1,8 @@
 Method
 ===================================
 
-.. autoclass:: mlgauge.Method
+.. autoclass:: mlgauge.SklearnMethod
     :members:
 
-.. autoclass:: mlgauge.SklearnMethod
+.. autoclass:: mlgauge.Method
     :members:
