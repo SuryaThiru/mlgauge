@@ -54,17 +54,19 @@ class Analysis:
                              The size of the list should be the same as that returned by the `Method`'s instance train and test methods.
             datasets (str or list): One of the following options:
 
-                                *"all"*: randomly select `n_datasets` from all available datasets in pmlb.
+                                **"all"**: randomly select `n_datasets` from all available datasets in pmlb.
 
-                                *"classification"*: randomly select `n_datasets` from all available classification datasets in pmlb.
+                                **"classification"**: randomly select `n_datasets` from all available classification datasets in pmlb.
 
-                                *"regression"*: randomly select `n_datasets` from all available regression datasets in pmlb.
+                                **"regression"**: randomly select `n_datasets` from all available regression datasets in pmlb.
 
-                                *list of strings*: a list of valid pmlb dataset names.
+                                **list of strings**: a list of valid pmlb dataset names.
 
-                                *list of ('dataset_name', (X, y)) tuples*: Use the method to pass a custom dataset in the X y array format.
+                                **list of ('dataset_name', (X, y)) tuples**: Use the method to pass a custom dataset in the X y format.
 
-                                *list of ('dataset_name', (X_train, y_train), (X_test, y_test)) tuples*: Use the method to pass a custom training and testing set in the X y array format.
+                                **list of ('dataset_name', (X_train, y_train), (X_test, y_test)) tuples**: Use the method to pass a custom training and testing set in the X y format.
+
+                            Here, X y could be a numpy array or a pandas DataFrame, using a DataFrame will allow the input feature names to be passed to the methods.
 
             n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is not a string.
 
