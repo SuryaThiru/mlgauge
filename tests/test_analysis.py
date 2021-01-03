@@ -23,7 +23,7 @@ def regressor():
 
 # Test all allowed data formats
 class TestDataFormat:
-    def test_string(self, regressor):
+    def test_string(self, regressor, tmp_path):
         # should work with "all", "classification", "regression"
         an = Analysis(
             methods=[("dummy", regressor)],
@@ -31,6 +31,7 @@ class TestDataFormat:
             datasets="all",
             n_datasets=5,
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 5
 
@@ -40,6 +41,7 @@ class TestDataFormat:
             datasets="classification",
             n_datasets=5,
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 5
 
@@ -49,16 +51,18 @@ class TestDataFormat:
             datasets="regression",
             n_datasets=5,
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 5
 
-    def test_list(self, regressor):
+    def test_list(self, regressor, tmp_path):
         # should work with a list of valid pmlb datasets names
         an = Analysis(
             methods=[("dummy", regressor)],
             metric_names=["r2", "max_error"],
             datasets=["503_wind", "581_fri_c3_500_25", "adult", "cars", "pima"],
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 5
 
@@ -69,9 +73,10 @@ class TestDataFormat:
                 metric_names=["r2", "max_error"],
                 datasets=["adult", "invalid"],
                 random_state=SEED,
+                output_dir=tmp_path,
             )
 
-    def test_tuple(self, regressor):
+    def test_tuple(self, regressor, tmp_path):
         # should works with a list of (X, y) tuples
         datasets = [
             (
@@ -88,10 +93,11 @@ class TestDataFormat:
             metric_names=["r2", "max_error"],
             datasets=datasets,
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 2
 
-    def test_tuple_train_test(self, regressor):
+    def test_tuple_train_test(self, regressor, tmp_path):
         # should works with a list of (X_train, y_train, X_test, y_test) tuples
         datasets = [
             (
@@ -116,10 +122,11 @@ class TestDataFormat:
             metric_names=["r2", "max_error"],
             datasets=datasets,
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 2
 
-    def test_mixed(self, regressor):
+    def test_mixed(self, regressor, tmp_path):
         # should work with a mix of strings, tuples, tuple of tuples
         datasets = [
             (
@@ -146,6 +153,7 @@ class TestDataFormat:
             metric_names=["r2", "max_error"],
             datasets=datasets,
             random_state=SEED,
+            output_dir=tmp_path,
         )
         assert len(an.datasets) == 7
 
@@ -167,7 +175,7 @@ class MockMethodNA(Method):
 
 
 @pytest.mark.parametrize("dropna", [True, False])
-def test_dropna(dropna):
+def test_dropna(dropna, tmp_path):
     X, y = make_regression(n_samples=200, n_features=5, random_state=SEED)
     X[0, 2] = np.nan
     y[3] = np.nan
@@ -179,42 +187,43 @@ def test_dropna(dropna):
         random_state=SEED,
         drop_na=dropna,
         use_test_set=False,
+        output_dir=tmp_path,
     )
     an.run()
 
 
 # Test output directory
-def test_output_dir():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        skl = SklearnMethod(
-            LinearRegression(), ["neg_mean_squared_error", "r2"], export_model=True
-        )
-        an = Analysis(
-            methods=[("dummy", skl)],
-            metric_names=["r2", "max_error"],
-            datasets=["adult", "cars", "pima"],
-            random_state=SEED,
-            output_dir=tmpdir,
-        )
-        an.run()
+def test_output_dir(tmp_path):
+    skl = SklearnMethod(
+        LinearRegression(), ["neg_mean_squared_error", "r2"], export_model=True
+    )
+    an = Analysis(
+        methods=[("dummy", skl)],
+        metric_names=["r2", "max_error"],
+        datasets=["adult", "cars", "pima"],
+        random_state=SEED,
+        output_dir=tmp_path,
+    )
+    an.run()
 
-        out_dir = os.path.join(tmpdir, "Analysis_1")
-        exports = map(
-            lambda x: os.path.join(out_dir, x, "dummy", "estimator.joblib"),
-            ["adult", "cars", "pima"],
-        )
+    out_dir = os.path.join(tmp_path, "Analysis_1")
+    exports = map(
+        lambda x: os.path.join(out_dir, x, "dummy", "estimator.joblib"),
+        ["adult", "cars", "pima"],
+    )
 
-        for export in exports:
-            assert os.path.exists(export)
+    for export in exports:
+        assert os.path.exists(export)
 
 
 # Test results with train-test split
-def test_result_test_split():
-    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
+def test_result_test_split(tmp_path):
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"])
     tree = SklearnMethod(
-        DecisionTreeRegressor(random_state=SEED), ["r2", "max_error"], export_model=True
+        DecisionTreeRegressor(random_state=SEED),
+        ["r2", "max_error"],
     )
-    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"], export_model=True)
+    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"])
     an = Analysis(
         methods=[("linear", linear), ("tree", tree), ("dummy", dummy)],
         metric_names=["r2", "max_error"],
@@ -222,15 +231,17 @@ def test_result_test_split():
         n_datasets=3,
         random_state=SEED,
         use_test_set=True,
+        output_dir=tmp_path,
     )
     an.run()
 
     assert an.results.shape == (3, 3, 2, 2)
     assert not np.isnan(an.results.values).any()
 
-    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"])
     tree = SklearnMethod(
-        DecisionTreeRegressor(random_state=SEED), ["r2", "max_error"], export_model=True
+        DecisionTreeRegressor(random_state=SEED),
+        ["r2", "max_error"],
     )
     # check if the results match
     for data in an.datasets:
@@ -252,17 +263,14 @@ def test_result_test_split():
 
 
 # Test results with 5-fold validation
-def test_result_cv():
-    linear = SklearnMethod(
-        LinearRegression(), ["r2", "max_error"], export_model=True, cv=5
-    )
+def test_result_cv(tmp_path):
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], cv=5)
     tree = SklearnMethod(
         DecisionTreeRegressor(random_state=SEED),
         ["r2", "max_error"],
-        export_model=True,
         cv=5,
     )
-    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"], export_model=True)
+    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"])
     an = Analysis(
         methods=[("linear", linear), ("tree", tree), ("dummy", dummy)],
         metric_names=["r2", "max_error"],
@@ -270,6 +278,7 @@ def test_result_cv():
         n_datasets=3,
         random_state=SEED,
         use_test_set=False,
+        output_dir=tmp_path,
     )
     an.run()
 
@@ -277,9 +286,10 @@ def test_result_cv():
     assert not np.isnan(an.results.values).any()
     print(an.results)
 
-    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"])
     tree = SklearnMethod(
-        DecisionTreeRegressor(random_state=SEED), ["r2", "max_error"], export_model=True
+        DecisionTreeRegressor(random_state=SEED),
+        ["r2", "max_error"],
     )
     linear.set_test_set(False)
     tree.set_test_set(False)
