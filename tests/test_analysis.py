@@ -3,9 +3,11 @@ import os
 
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 import numpy as np
+import pmlb
 import pytest
 
 from mlgauge import Analysis, Method, SklearnMethod
@@ -204,3 +206,96 @@ def test_output_dir():
 
         for export in exports:
             assert os.path.exists(export)
+
+
+# Test results with train-test split
+def test_result_test_split():
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
+    tree = SklearnMethod(
+        DecisionTreeRegressor(random_state=SEED), ["r2", "max_error"], export_model=True
+    )
+    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"], export_model=True)
+    an = Analysis(
+        methods=[("linear", linear), ("tree", tree), ("dummy", dummy)],
+        metric_names=["r2", "max_error"],
+        datasets="regression",
+        n_datasets=3,
+        random_state=SEED,
+        use_test_set=True,
+    )
+    an.run()
+
+    assert an.results.shape == (3, 3, 2, 2)
+    assert not np.isnan(an.results.values).any()
+
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
+    tree = SklearnMethod(
+        DecisionTreeRegressor(random_state=SEED), ["r2", "max_error"], export_model=True
+    )
+    # check if the results match
+    for data in an.datasets:
+        X, y = pmlb.fetch_data(data, return_X_y=True)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.25, shuffle=True, random_state=SEED
+        )
+
+        linear_r2, linear_max = linear.train(X_train, y_train)
+        tree_r2, tree_max = tree.train(X_train, y_train)
+
+        assert round(
+            float(an.results.loc[data, "linear", "max_error", "train"].values), 4
+        ) == round(linear_max, 4)
+
+        assert round(
+            float(an.results.loc[data, "tree", "max_error", "train"].values), 4
+        ) == round(tree_max, 4)
+
+
+# Test results with 5-fold validation
+def test_result_cv():
+    linear = SklearnMethod(
+        LinearRegression(), ["r2", "max_error"], export_model=True, cv=5
+    )
+    tree = SklearnMethod(
+        DecisionTreeRegressor(random_state=SEED),
+        ["r2", "max_error"],
+        export_model=True,
+        cv=5,
+    )
+    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"], export_model=True)
+    an = Analysis(
+        methods=[("linear", linear), ("tree", tree), ("dummy", dummy)],
+        metric_names=["r2", "max_error"],
+        datasets="regression",
+        n_datasets=3,
+        random_state=SEED,
+        use_test_set=False,
+    )
+    an.run()
+
+    assert an.results.shape == (3, 3, 2, 5)
+    assert not np.isnan(an.results.values).any()
+    print(an.results)
+
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
+    tree = SklearnMethod(
+        DecisionTreeRegressor(random_state=SEED), ["r2", "max_error"], export_model=True
+    )
+    linear.set_test_set(False)
+    tree.set_test_set(False)
+    # check if the results match
+    for data in an.datasets:
+        X, y = pmlb.fetch_data(data, return_X_y=True)
+
+        linear_r2, linear_max = linear.train(X, y)
+        tree_r2, tree_max = tree.train(X, y)
+
+        an_linear_max = an.results.loc[
+            data, "linear", "max_error"
+        ].values  # check all folds
+        np.testing.assert_array_equal(an_linear_max, linear_max)
+
+        an_tree_max = an.results.loc[
+            data, "tree", "max_error"
+        ].values  # check all folds
+        np.testing.assert_array_equal(an_tree_max, tree_max)

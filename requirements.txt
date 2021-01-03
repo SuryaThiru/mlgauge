@@ -3,3 +3,4 @@ pandas>=1.0.3
 scikit-learn>=0.22.2
 joblib>=0.17.0
 matplotlib>=3.1
+xarray>=0.16.1

@@ -1,7 +1,9 @@
 import os
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_random_state
 import pmlb
@@ -14,14 +16,30 @@ class Analysis:
 
     The class gathers datasets, methods and runs the given methods across
     different datasets and compiles the results.
+
+    Attributes:
+        results (xr.DataArray): Named array containing resulting metrics of the analysis.
+
+                                The dimensions are named "datasets", "methods", "metrics", "splits".
+                                You can index on each dimension using the name of the dataset, method, metrics and split ("train"/"test" if method uses test, "fold_1", "fold_2", ... otherwise) using the ``loc`` attribute similar to pandas.
+
+                                For example to identify the `test` `mse` score of your `linear` model on the `houses` dataset:
+
+                                .. code-block:: python
+
+                                    result.loc['houses', 'linear', 'mse', 'test']
+
+
+                                Refer the documentation of `xarray <https://xarray.pydata.org/en/stable/quick-overview.html>`_ for a more detailed usage.
     """
 
+    # TODO allow metrics to be null
     def __init__(
         self,
         methods,
         metric_names,
         datasets="all",
-        n_datasets=None,
+        n_datasets=20,
         drop_na=False,
         use_test_set=True,
         test_size=0.25,
@@ -48,7 +66,7 @@ class Analysis:
 
                                 *list of ('dataset_name', (X_train, y_train), (X_test, y_test)) tuples*: Use the method to pass a custom training and testing set in the X y array format.
 
-            n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is a string.
+            n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is not a string.
 
             drop_na (bool): If True will drop all rows in the dataset with null values.
             random_state (None, int or RandomState instance): seed for the PRNG.
@@ -57,13 +75,17 @@ class Analysis:
             output_dir (str) : Path of the output directory where method artifacts will be stored. A separate directory for each method will be created inside the directory. Defaults to an "output" directory in the current working directory.
         """
         self.random_state = check_random_state(random_state)
+        self.seed = self.random_state.get_state()[1][0]  # will be used with train-test split to ensure reproducibility outside class
 
         self.__methods = self._precheck_methods(methods)
         self.metric_names = metric_names
 
         self.datasets = self._precheck_dataset(datasets)
-        if isinstance(self.datasets, str):
+        if isinstance(
+            self.datasets, str
+        ):  # expand "all", "classification" or "regression"
             self.datasets = self._expand_dataset_str(self.datasets, n_datasets)
+            print("Collected datasets: ", self.datasets)
         self.drop_na = drop_na
 
         self.use_test_set = use_test_set
@@ -79,7 +101,7 @@ class Analysis:
         self.output_dir = os.path.join(self.output_dir, f"Analysis_{i}")
         os.makedirs(self.output_dir, exist_ok=True)
 
-        self.results = None
+        self.results = self._initialize_results()
 
     def run(self):
         """Load the datasets, run the methods and collect the results."""
@@ -97,6 +119,7 @@ class Analysis:
                 )
 
             for method_name, method in self.__methods:
+                method = deepcopy(method)
                 # set attributes for the dataset and method
                 method.set_test_set(self.use_test_set)
                 method.set_feature_names(feature_names)
@@ -111,6 +134,14 @@ class Analysis:
                 # get optional testing scores
                 if self.use_test_set:
                     test_scores = method.test(X_test, y_test)
+                    self.results.loc[dataset_name, method_name, :, "train"] = np.array(
+                        train_scores
+                    )
+                    self.results.loc[dataset_name, method_name, :, "test"] = np.array(
+                        test_scores
+                    )
+                else:
+                    self.results.loc[dataset_name, method_name] = np.array(train_scores)
 
         # TODO recursively remove empty directories
 
@@ -157,7 +188,7 @@ class Analysis:
         return methods
 
     def _expand_dataset_str(self, dataset_str, n_datasets):
-        """Convert the dataset argument"""
+        """Convert the dataset string to list of pmlb dataset names"""
         if dataset_str == "all":
             datasets = self.random_state.choice(pmlb.dataset_names, n_datasets)
         elif dataset_str == "classification":
@@ -169,6 +200,35 @@ class Analysis:
                 pmlb.regression_dataset_names, n_datasets
             )
         return datasets
+
+    def _initialize_results(self):
+        """Define a results object to store results generated during analysis."""
+        dims = ["datasets", "methods", "metrics", "splits"]
+
+        # co-ords
+        dataset_names = [self._get_dataset_name(data) for data in self.datasets]
+        method_names = [name for (name, _) in self.__methods]
+        metric_names = self.metric_names
+        coords = {
+            "datasets": dataset_names,
+            "methods": method_names,
+            "metrics": metric_names,
+        }
+
+        if self.use_test_set:
+            coords["splits"] = ["train", "test"]
+        else:
+            n_folds = self.__methods[0][1].cv  # get the number of folds from a method
+            coords["splits"] = ["fold_" + str(i) for i in range(1, n_folds+1)]
+
+        return xr.DataArray(np.nan, coords=coords, dims=dims)
+
+    def _get_dataset_name(self, dataset):
+        """Get the supplied name of the dataset"""
+        if isinstance(dataset, str):
+            return dataset
+        elif isinstance(dataset, tuple):
+            return dataset[0]
 
     def _get_dataset(self, dataset):
         """Load and return the dataset as X, y numpy arrays"""
@@ -200,7 +260,7 @@ class Analysis:
                 y,
                 test_size=self.test_size,
                 shuffle=True,
-                random_state=self.random_state,
+                random_state=self.seed,
             )
             feature_names = self._get_feature_names(X_train)
             X_train, y_train = self._format_na(X_train, y_train)
@@ -248,7 +308,7 @@ class Analysis:
 
     def plot_results(self, metric=None, ax=None):
         """
-        Plot results in a bar plot.
+        Plot results as a bar plot.
 
         Args:
             metric (str) : Enter the metric string for which the result should
