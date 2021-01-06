@@ -296,17 +296,55 @@ class Analysis:
         return X, y
 
     def get_result(self):
+        """get result of the analysis.
+
+        Returns:
+            (xr.DataArray): A 4d named array containing the result metrics.
+        """
         return self.results
 
-    def print_results(self, metric=None):
-        """
-        Print results as a table.
+    def get_result_as_df(self, metric=None, train=False):
+        """ Get results as a pandas dataframe.
 
         Args:
-            metric (str) : Enter the metric string for which the result should
-                            be displayed.
+            metric (str): Enter the metric string for which the result should
+                            be displayed. Defaults to the first name in `metric_names`.
+            train (bool): If true, will also return the train scores. Ignored if `use_test_set` is False.
+
+        Returns:
+            (pd.DataFrame): Pandas dataframe with datasets for rows.
+                            When `use_test_set` is True, the columns contain the train and test results
+                            otherwise the mean and standard deviation of the k-fold validation is returned.
         """
-        pass
+        if not metric:
+            metric = metric_names[-1]
+
+        dataset_names = [self._get_dataset_name(data) for data in self.datasets]
+        method_names = [name for (name, _) in self.__methods]
+
+        if self.use_test_set:
+            if train:  # train & test split scores
+                columns = pd.MultiIndex.from_product([method_names, ['train', 'test']])
+                index = dataset_names
+
+                df = pd.DataFrame(columns=columns, index=index)
+                df.loc[:,(slice(None), 'train')] = self.results.loc[:,:,metric,'train'].values
+                df.loc[:,(slice(None), 'test')] = self.results.loc[:,:,metric,'test'].values
+            else:  # only test split scores
+                columns = method_names
+                index = dataset_names
+
+                df = pd.DataFrame(self.results.loc[:,:,metric,'test'].values, columns=columns, index=index)
+
+        else:  # return mean & standard deviation across folds
+            columns = pd.MultiIndex.from_product([method_names, ['mean', 'std']])
+            index = dataset_names
+
+            df = pd.DataFrame(columns=columns, index=index)
+            df.loc[:,(slice(None), 'mean')] = self.results.loc[:,:,metric].mean('splits').values
+            df.loc[:,(slice(None), 'std')] = self.results.loc[:,:,metric].std('splits').values
+
+        return df
 
     def plot_results(self, metric=None, ax=None):
         """

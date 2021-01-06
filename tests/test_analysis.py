@@ -309,3 +309,50 @@ def test_result_cv(tmp_path):
             data, "tree", "max_error"
         ].values  # check all folds
         np.testing.assert_array_equal(an_tree_max, tree_max)
+
+
+# Test results as dataframe
+def test_get_results_as_df(regressor, tmp_path):
+    skl = SklearnMethod(
+        LinearRegression(), ["r2", "max_error"], export_model=True
+    )
+    # using test set
+    an = Analysis(
+        methods=[("dummy", regressor), ("linear", skl)],
+        metric_names=["r2", "max_error"],
+        datasets=["adult", "cars", "pima"],
+        use_test_set=True,
+        random_state=SEED,
+        output_dir=tmp_path,
+    )
+    an.run()
+
+    # only test set
+    df = an.get_result_as_df("r2")
+    assert df.loc["adult", "dummy"] == an.results.loc['adult', 'dummy', 'r2', 'test'].values.item()
+    df = an.get_result_as_df("max_error")
+    assert df.loc["cars", "linear"] == an.results.loc['cars', 'linear', 'max_error', 'test'].values.item()
+
+    # with train & test set
+    df = an.get_result_as_df("r2", train=True)
+    assert df.loc["adult",("linear", "train")] == an.results.loc['adult', 'linear', 'r2', 'train'].values.item()
+
+    # using 5-fold validation
+    an = Analysis(
+        methods=[("dummy", regressor), ("linear", skl)],
+        metric_names=["r2", "max_error"],
+        datasets=["adult", "cars", "pima"],
+        use_test_set=False,
+        random_state=SEED,
+        output_dir=tmp_path,
+    )
+    an.run()
+
+    # check the mean and std
+    df = an.get_result_as_df("r2")
+    assert df.loc['adult', ('dummy', 'mean')] == an.results.loc['adult', 'dummy', 'r2',:].mean().item()
+    assert df.loc['adult', ('dummy', 'std')] == an.results.loc['adult', 'dummy', 'r2',:].std().item()
+
+    df = an.get_result_as_df("max_error")
+    assert df.loc['cars', ('linear', 'mean')] == an.results.loc['cars', 'linear', 'max_error',:].mean().item()
+    assert df.loc['cars', ('linear', 'std')] == an.results.loc['cars', 'linear', 'max_error',:].std().item()
