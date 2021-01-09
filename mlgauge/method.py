@@ -43,32 +43,26 @@ class Method:
         """
         self.use_test_set = use_test_set
 
-    def set_feature_names(self, feature_names):
-        """Specify if the method requires a test set.
-
-        Args:
-            use_test_set (bool): method implements a `test` method when set to `True`.
-        """
-        self.feature_names = feature_names
-
-    def train(self, X_train, y_train):
+    def train(self, X_train, y_train, feature_names=None):
         """Train the model and return the training score.
 
         Args:
             X_train (array): array of training vector.
             y_train (array): array of target vector.
+            feature_names (list): list of names of the features in X_train
 
         Raises:
             NotImplementedError: raised when called from the base class.
         """
         raise NotImplementedError
 
-    def test(self, X_test, y_test):
+    def test(self, X_test, y_test, feature_names=None):
         """Evaluate the model and return the test score.
 
         Args:
             X_test (array): array of training vector.
             y_test (array): array of target vector.
+            feature_names (list): list of names of the features in X_test
 
         Raises:
             NotImplementedError: raised when called from the base class.
@@ -96,12 +90,13 @@ class SklearnMethod(Method):
         self.export_model = export_model
         self.cv = cv
 
-    def train(self, X_train, y_train):
+    def train(self, X_train, y_train, feature_names=None):
         """Train the model and return the training score.
 
         Args:
             X_train (array): array of training vector.
             y_train (array): array of target vector.
+            feature_names (list): list of names of the features in X_train
 
         Returns:
             list: list of metric scores evaluated on the training data.
@@ -130,12 +125,13 @@ class SklearnMethod(Method):
             )
             return [scores_dict["test_" + key] for key in self.metrics]
 
-    def test(self, X_test, y_test):
+    def test(self, X_test, y_test, feature_names=None):
         """Evaluate the model and return the test score.
 
         Args:
             X_test (array): array of training vector.
             y_test (array): array of target vector.
+            feature_names (list): list of names of the features in X_test
 
         Returns:
             list: list of metric scores evaluated on the testing data.

@@ -175,7 +175,7 @@ class MockMethodNA(Method):
         self.drop_na = dropna
         super().__init__()
 
-    def train(self, X, y):
+    def train(self, X, y, feature_names):
         dat = np.hstack([X, y.reshape(-1, 1)])
         if self.drop_na:
             assert not np.isnan(dat).any(), "data has missing values"
@@ -371,9 +371,34 @@ def test_get_results_as_df(regressor, tmp_path):
 
     # check the mean and std
     df = an.get_result_as_df("r2")
-    assert df.loc['adult', ('dummy', 'mean')] == an.results.loc['adult', 'dummy', 'r2',:].mean().item()
-    assert df.loc['adult', ('dummy', 'std')] == an.results.loc['adult', 'dummy', 'r2',:].std().item()
+    assert (
+        df.loc["adult", ("dummy", "mean")]
+        == an.results.loc["adult", "dummy", "r2", :].mean().item()
+    )
+    assert (
+        df.loc["adult", ("dummy", "std")]
+        == an.results.loc["adult", "dummy", "r2", :].std().item()
+    )
 
     df = an.get_result_as_df("max_error")
-    assert df.loc['cars', ('linear', 'mean')] == an.results.loc['cars', 'linear', 'max_error',:].mean().item()
-    assert df.loc['cars', ('linear', 'std')] == an.results.loc['cars', 'linear', 'max_error',:].std().item()
+    assert (
+        df.loc["cars", ("linear", "mean")]
+        == an.results.loc["cars", "linear", "max_error", :].mean().item()
+    )
+    assert (
+        df.loc["cars", ("linear", "std")]
+        == an.results.loc["cars", "linear", "max_error", :].std().item()
+    )
+
+    # check multiple folds
+    df = an.get_result_as_df("r2", mean_folds=False)
+    assert df.loc["adult", ("dummy", slice(None))].shape == (5,)
+    np.testing.assert_array_equal(
+        df.loc["adult", ("dummy", slice(None))], an.results.loc["adult", "dummy", "r2"]
+    )
+
+    df = an.get_result_as_df("max_error", mean_folds=False)
+    np.testing.assert_array_equal(
+        df.loc["cars", ("linear", slice(None))],
+        an.results.loc["cars", "linear", "max_error"],
+    )

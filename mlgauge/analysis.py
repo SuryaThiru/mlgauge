@@ -130,18 +130,17 @@ class Analysis:
                 method = deepcopy(method)
                 # set attributes for the dataset and method
                 method.set_test_set(self.use_test_set)
-                method.set_feature_names(feature_names)
                 # create output directory
                 output_dir = os.path.join(self.output_dir, dataset_name, method_name)
                 os.makedirs(output_dir, exist_ok=True)
                 method.set_output_dir(output_dir)
 
                 # get training scores
-                train_scores = method.train(X_train, y_train)
+                train_scores = method.train(X_train, y_train, feature_names)
 
                 # get optional testing scores
                 if self.use_test_set:
-                    test_scores = method.test(X_test, y_test)
+                    test_scores = method.test(X_test, y_test, feature_names)
                     self.results.loc[dataset_name, method_name, :, "train"] = np.array(
                         train_scores
                     )
@@ -227,7 +226,7 @@ class Analysis:
             coords["splits"] = ["train", "test"]
         else:
             n_folds = self.__methods[0][1].cv  # get the number of folds from a method
-            coords["splits"] = ["fold_" + str(i) for i in range(1, n_folds+1)]
+            coords["splits"] = ["fold_" + str(i) for i in range(1, n_folds + 1)]
 
         return xr.DataArray(np.nan, coords=coords, dims=dims)
 
@@ -309,57 +308,105 @@ class Analysis:
         """
         return self.results
 
-    def get_result_as_df(self, metric=None, train=False):
-        """ Get results as a pandas dataframe.
+    def get_result_as_df(self, metric=None, train=False, mean_folds=True):
+        """Get results as a pandas dataframe.
 
         Args:
             metric (str): Enter the metric string for which the result should
                             be displayed. Defaults to the first name in `metric_names`.
             train (bool): If true, will also return the train scores. Ignored if `use_test_set` is False.
+            mean_folds (bool): If true, will return mean and std deviation of the k-fold results, otherwise returns all folds.
+                               Ignored if `use_test_set` is True.
 
         Returns:
             (pd.DataFrame): Pandas dataframe with datasets for rows.
                             When `use_test_set` is True, the columns contain the train and test results
                             otherwise the mean and standard deviation of the k-fold validation is returned.
+                            If `mean_folds` is set to False, all folds scores are returned.
         """
         if not metric:
             metric = metric_names[-1]
 
         dataset_names = [self._get_dataset_name(data) for data in self.datasets]
         method_names = [name for (name, _) in self.__methods]
+        index = dataset_names
 
         if self.use_test_set:
             if train:  # train & test split scores
-                columns = pd.MultiIndex.from_product([method_names, ['train', 'test']])
-                index = dataset_names
+                columns = pd.MultiIndex.from_product([method_names, ["train", "test"]])
 
                 df = pd.DataFrame(columns=columns, index=index)
-                df.loc[:,(slice(None), 'train')] = self.results.loc[:,:,metric,'train'].values
-                df.loc[:,(slice(None), 'test')] = self.results.loc[:,:,metric,'test'].values
+                df.loc[:, (slice(None), "train")] = self.results.loc[
+                    :, :, metric, "train"
+                ].values
+                df.loc[:, (slice(None), "test")] = self.results.loc[
+                    :, :, metric, "test"
+                ].values
             else:  # only test split scores
                 columns = method_names
-                index = dataset_names
 
-                df = pd.DataFrame(self.results.loc[:,:,metric,'test'].values, columns=columns, index=index)
+                df = pd.DataFrame(
+                    self.results.loc[:, :, metric, "test"].values,
+                    columns=columns,
+                    index=index,
+                )
 
         else:  # return mean & standard deviation across folds
-            columns = pd.MultiIndex.from_product([method_names, ['mean', 'std']])
-            index = dataset_names
+            if mean_folds:
+                columns = pd.MultiIndex.from_product([method_names, ["mean", "std"]])
 
-            df = pd.DataFrame(columns=columns, index=index)
-            df.loc[:,(slice(None), 'mean')] = self.results.loc[:,:,metric].mean('splits').values
-            df.loc[:,(slice(None), 'std')] = self.results.loc[:,:,metric].std('splits').values
+                df = pd.DataFrame(columns=columns, index=index)
+                df.loc[:, (slice(None), "mean")] = (
+                    self.results.loc[:, :, metric].mean("splits").values
+                )
+                df.loc[:, (slice(None), "std")] = (
+                    self.results.loc[:, :, metric].std("splits").values
+                )
+            else:
+                n_folds = self.results.shape[-1]
+                fold_cols = ["fold_" + str(i + 1) for i in range(n_folds)]
+                columns = pd.MultiIndex.from_product([method_names, fold_cols])
 
+                df = pd.DataFrame(columns=columns, index=index)
+                for col in fold_cols:
+                    df.loc[:, (slice(None), col)] = self.results.loc[:, :, metric, col]
+
+        df = df.rename_axis(index="datasets")
         return df
 
     def plot_results(self, metric=None, ax=None):
-        """
-        Plot results as a bar plot.
+        """Plot results as a bar plot.
 
         Args:
-            metric (str) : Enter the metric string for which the result should
+            metric (str): Enter the metric string for which the result should
                             be displayed.
-            ax (matplotlib Axes) : Axes in which to draw the plot, otherwise use the currently-active Axes.
+            ax (matplotlib Axes): Axes in which to draw the plot, otherwise use the currently-active Axes.
+
+        Returns:
+            (matplotlib Axes): Axes containing the plot.
         """
-        # TODO  use plt.gca and see how seaborn uses the axes parameter
-        pass
+        # if ax is None:
+        #     ax = plt.gca()
+        metric = metric if metric else self.metric_names[0]
+
+        if self.use_test_set:  # only test set
+            df = self.get_result_as_df(metric)
+            df_bar = df.reset_index().melt(
+                id_vars=["datasets"], var_name="methods", value_name=metric
+            )
+            return sns.barplot(
+                data=df_bar, x="datasets", y=metric, hue="methods", ax=ax
+            )
+
+        else:  # k-fold validation
+            df = self.get_result_as_df(metric, mean_folds=False)
+            df_bar = (
+                df.stack([0, 1])
+                .rename_axis(index=["datasets", "methods", "folds"])
+                .reset_index()
+                .rename(columns={0: metric})
+            )
+
+            return sns.barplot(
+                data=df_bar, x="datasets", y=metric, capsize=0.1, hue="methods", ax=ax
+            )
