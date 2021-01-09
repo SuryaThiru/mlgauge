@@ -27,7 +27,7 @@ setup(
     packages=find_packages(exclude=("tests")),
     license="License :: OSI Approved :: MIT License",
     install_requires=list_reqs(),
-    extras_requre={"dev": ["pytest", "black"]},
+    extras_requre={"dev": ["pytest", "black", "flake8"]},
     keywords=["machine learning", "benchmark", "pmlb"],
     classifiers=[
         "Intended Audience :: Science/Research",

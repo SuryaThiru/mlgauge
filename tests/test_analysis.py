@@ -14,6 +14,7 @@ from mlgauge import Analysis, Method, SklearnMethod
 
 
 SEED = 42
+PMLB_CACHE = "./pmlb_cache"
 
 
 @pytest.fixture
@@ -32,6 +33,7 @@ class TestDataFormat:
             n_datasets=5,
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 5
 
@@ -42,6 +44,7 @@ class TestDataFormat:
             n_datasets=5,
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 5
 
@@ -52,6 +55,7 @@ class TestDataFormat:
             n_datasets=5,
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 5
 
@@ -63,6 +67,7 @@ class TestDataFormat:
             datasets=["503_wind", "581_fri_c3_500_25", "adult", "cars", "pima"],
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 5
 
@@ -74,6 +79,7 @@ class TestDataFormat:
                 datasets=["adult", "invalid"],
                 random_state=SEED,
                 output_dir=tmp_path,
+                local_cache_dir=PMLB_CACHE,
             )
 
     def test_tuple(self, regressor, tmp_path):
@@ -94,6 +100,7 @@ class TestDataFormat:
             datasets=datasets,
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 2
 
@@ -123,6 +130,7 @@ class TestDataFormat:
             datasets=datasets,
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 2
 
@@ -154,6 +162,7 @@ class TestDataFormat:
             datasets=datasets,
             random_state=SEED,
             output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
         )
         assert len(an.datasets) == 7
 
@@ -188,6 +197,7 @@ def test_dropna(dropna, tmp_path):
         drop_na=dropna,
         use_test_set=False,
         output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
     )
     an.run()
 
@@ -203,6 +213,7 @@ def test_output_dir(tmp_path):
         datasets=["adult", "cars", "pima"],
         random_state=SEED,
         output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
     )
     an.run()
 
@@ -232,6 +243,7 @@ def test_result_test_split(tmp_path):
         random_state=SEED,
         use_test_set=True,
         output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
     )
     an.run()
 
@@ -279,12 +291,12 @@ def test_result_cv(tmp_path):
         random_state=SEED,
         use_test_set=False,
         output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
     )
     an.run()
 
     assert an.results.shape == (3, 3, 2, 5)
     assert not np.isnan(an.results.values).any()
-    print(an.results)
 
     linear = SklearnMethod(LinearRegression(), ["r2", "max_error"])
     tree = SklearnMethod(
@@ -303,19 +315,17 @@ def test_result_cv(tmp_path):
         an_linear_max = an.results.loc[
             data, "linear", "max_error"
         ].values  # check all folds
-        np.testing.assert_array_equal(an_linear_max, linear_max)
+        np.testing.assert_allclose(an_linear_max, linear_max, rtol=1e-13)
 
         an_tree_max = an.results.loc[
             data, "tree", "max_error"
         ].values  # check all folds
-        np.testing.assert_array_equal(an_tree_max, tree_max)
+        np.testing.assert_allclose(an_tree_max, tree_max, rtol=1e-13)
 
 
 # Test results as dataframe
 def test_get_results_as_df(regressor, tmp_path):
-    skl = SklearnMethod(
-        LinearRegression(), ["r2", "max_error"], export_model=True
-    )
+    skl = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
     # using test set
     an = Analysis(
         methods=[("dummy", regressor), ("linear", skl)],
@@ -324,18 +334,28 @@ def test_get_results_as_df(regressor, tmp_path):
         use_test_set=True,
         random_state=SEED,
         output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
     )
     an.run()
 
     # only test set
     df = an.get_result_as_df("r2")
-    assert df.loc["adult", "dummy"] == an.results.loc['adult', 'dummy', 'r2', 'test'].values.item()
+    assert (
+        df.loc["adult", "dummy"]
+        == an.results.loc["adult", "dummy", "r2", "test"].values.item()
+    )
     df = an.get_result_as_df("max_error")
-    assert df.loc["cars", "linear"] == an.results.loc['cars', 'linear', 'max_error', 'test'].values.item()
+    assert (
+        df.loc["cars", "linear"]
+        == an.results.loc["cars", "linear", "max_error", "test"].values.item()
+    )
 
     # with train & test set
     df = an.get_result_as_df("r2", train=True)
-    assert df.loc["adult",("linear", "train")] == an.results.loc['adult', 'linear', 'r2', 'train'].values.item()
+    assert (
+        df.loc["adult", ("linear", "train")]
+        == an.results.loc["adult", "linear", "r2", "train"].values.item()
+    )
 
     # using 5-fold validation
     an = Analysis(
@@ -345,6 +365,7 @@ def test_get_results_as_df(regressor, tmp_path):
         use_test_set=False,
         random_state=SEED,
         output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
     )
     an.run()
 

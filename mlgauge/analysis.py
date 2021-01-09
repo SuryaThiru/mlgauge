@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 import xarray as xr
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_random_state
 import pmlb
@@ -45,6 +46,7 @@ class Analysis:
         test_size=0.25,
         random_state=None,
         output_dir=None,
+        local_cache_dir=None,
     ):
         """Initialize analysis.
 
@@ -74,10 +76,13 @@ class Analysis:
             random_state (None, int or RandomState instance): seed for the PRNG.
             use_test_set (bool): If the methods use a testing set.
             test_size (float): The size of the test set. Ignored if `use_test_set` is False.
-            output_dir (str) : Path of the output directory where method artifacts will be stored. A separate directory for each method will be created inside the directory. Defaults to an "output" directory in the current working directory.
+            output_dir (str): Path of the output directory where method artifacts will be stored. A separate directory for each method will be created inside the directory. Defaults to an "output" directory in the current working directory.
+            local_cache_dir (str): Local cache to use for pmlb datasets. If None will not use cached data.
         """
         self.random_state = check_random_state(random_state)
-        self.seed = self.random_state.get_state()[1][0]  # will be used with train-test split to ensure reproducibility outside class
+        self.seed = self.random_state.get_state()[1][
+            0
+        ]  # will be used with train-test split to ensure reproducibility outside class
 
         self.__methods = self._precheck_methods(methods)
         self.metric_names = metric_names
@@ -89,6 +94,7 @@ class Analysis:
             self.datasets = self._expand_dataset_str(self.datasets, n_datasets)
             print("Collected datasets: ", self.datasets)
         self.drop_na = drop_na
+        self.local_cache_dir = local_cache_dir
 
         self.use_test_set = use_test_set
         self.test_size = test_size
@@ -235,7 +241,7 @@ class Analysis:
     def _get_dataset(self, dataset):
         """Load and return the dataset as X, y numpy arrays"""
         if isinstance(dataset, str):  # Use pmlb
-            data = pmlb.fetch_data(dataset)
+            data = pmlb.fetch_data(dataset, local_cache_dir=self.local_cache_dir)
 
             # Get feature names and get X,y numpy arrays
             X = data.drop("target", axis=1)
