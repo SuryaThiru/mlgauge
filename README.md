@@ -1,4 +1,4 @@
-# mlgauge
+![mlgauge](docs/logo/logo.png)
 
 ![Build](https://github.com/SuryaThiru/mlgauge/workflows/Python%20package/badge.svg)
 ![Formatting](https://github.com/SuryaThiru/mlgauge/workflows/Formatting/badge.svg)
@@ -83,3 +83,6 @@ an.plot_results("f1 score")
 
 More examples are available in the documentation.
 
+## Credits
+
+Logo designed by the talented [Neha Balsundaram](https://www.behance.net/nehabalasundaram).
