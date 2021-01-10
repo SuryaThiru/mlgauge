@@ -83,3 +83,6 @@ an.plot_results("f1 score")
 
 More examples are available in the documentation.
 
+## Credits
+
+Logo designed by the talented [Neha Balsundaram](https://www.behance.net/nehabalasundaram).
