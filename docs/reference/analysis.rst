@@ -1,6 +1,6 @@
 Analysis
 ===================================
 
-.. autoclass:: mlgauge.analysis.Analysis
+.. autoclass:: mlgauge.Analysis
     :members:
 

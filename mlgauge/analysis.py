@@ -52,8 +52,8 @@ class Analysis:
 
         Args:
             methods (list): List of tuple containing the method name and a method object.
-            metric_names (list): List of strings representing the names of the metric. The names are only used to represent the metrics output by the method objects.
-                                If `None` will not collect metrics from methods.
+            metric_names (list): List of strings representing the names of the metric. The names are only used to represent the metrics output by the method objects.  If `None` will not collect metrics from methods.
+
                              The size of the list should be the same as that returned by the `Method`'s instance train and test methods.
             datasets (str or list): One of the following options:
 
