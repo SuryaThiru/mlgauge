@@ -1,5 +1,5 @@
 Examples
-===================================
+========
 
 The examples below illustrates the usage of the library:
 
