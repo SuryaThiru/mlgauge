@@ -1,5 +1,6 @@
 import tempfile
 import os
+import itertools
 
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
@@ -204,23 +205,52 @@ def test_dropna(dropna, tmp_path):
 
 # Test output directory
 def test_output_dir(tmp_path):
+    n_folds = 3
     skl = SklearnMethod(
-        LinearRegression(), ["neg_mean_squared_error", "r2"], export_model=True
+        LinearRegression(),
+        ["neg_mean_squared_error", "r2"],
+        export_model=True,
+        cv=n_folds,
     )
+
+    # Using test set
+    test_path = os.path.join(tmp_path, "test_output")
     an = Analysis(
         methods=[("dummy", skl)],
         metric_names=["r2", "max_error"],
         datasets=["adult", "cars", "pima"],
         random_state=SEED,
-        output_dir=tmp_path,
+        output_dir=test_path,
         local_cache_dir=PMLB_CACHE,
     )
     an.run()
 
-    out_dir = os.path.join(tmp_path, "Analysis_1")
+    out_dir = os.path.join(test_path, "Analysis_1")
     exports = map(
         lambda x: os.path.join(out_dir, x, "dummy", "estimator.joblib"),
         ["adult", "cars", "pima"],
+    )
+
+    for export in exports:
+        assert os.path.exists(export)
+
+    # Cross-validation
+    test_path = os.path.join(tmp_path, "cv_output")
+    an = Analysis(
+        methods=[("dummy", skl)],
+        metric_names=["r2", "max_error"],
+        datasets=["adult", "cars", "pima"],
+        random_state=SEED,
+        output_dir=test_path,
+        local_cache_dir=PMLB_CACHE,
+        use_test_set=False,
+    )
+    an.run()
+
+    out_dir = os.path.join(test_path, "Analysis_1")
+    exports = map(
+        lambda x: os.path.join(out_dir, x[0], "dummy", f"estimator_fold_{x[1]}.joblib"),
+        itertools.product(["adult", "cars", "pima"], range(1, n_folds + 1)),
     )
 
     for export in exports:

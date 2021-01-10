@@ -118,11 +118,21 @@ class SklearnMethod(Method):
                 scores.append(score)
             return scores
         else:
-            # TODO export models from each fold.
-            # TODO add random state to cross-validation
             scores_dict = cross_validate(
-                self.estimator, X_train, y_train, cv=self.cv, scoring=self.metrics
+                self.estimator,
+                X_train,
+                y_train,
+                cv=self.cv,
+                scoring=self.metrics,
+                return_estimator=self.export_model,
             )
+            if self.export_model:
+                for i, fold_estimator in enumerate(scores_dict["estimator"]):
+                    dump_path = os.path.join(
+                        self.output_dir, f"estimator_fold_{i+1}.joblib"
+                    )
+                    joblib.dump(fold_estimator, dump_path)
+
             return [scores_dict["test_" + key] for key in self.metrics]
 
     def test(self, X_test, y_test, feature_names=None):
