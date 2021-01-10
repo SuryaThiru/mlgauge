@@ -336,7 +336,7 @@ class Analysis:
             raise AttributeError("No results available to show.")
 
         if not metric:
-            metric = metric_names[-1]
+            metric = self.metric_names[-1]
 
         dataset_names = [self._get_dataset_name(data) for data in self.datasets]
         method_names = [name for (name, _) in self.__methods]
