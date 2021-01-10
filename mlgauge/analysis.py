@@ -38,7 +38,7 @@ class Analysis:
     def __init__(
         self,
         methods,
-        metric_names,
+        metric_names=None,
         datasets="all",
         n_datasets=20,
         drop_na=False,
@@ -53,6 +53,7 @@ class Analysis:
         Args:
             methods (list): List of tuple containing the method name and a method object.
             metric_names (list): List of strings representing the names of the metric. The names are only used to represent the metrics output by the method objects.
+                                If `None` will not collect metrics from methods.
                              The size of the list should be the same as that returned by the `Method`'s instance train and test methods.
             datasets (str or list): One of the following options:
 
@@ -141,14 +142,18 @@ class Analysis:
                 # get optional testing scores
                 if self.use_test_set:
                     test_scores = method.test(X_test, y_test, feature_names)
-                    self.results.loc[dataset_name, method_name, :, "train"] = np.array(
-                        train_scores
-                    )
-                    self.results.loc[dataset_name, method_name, :, "test"] = np.array(
-                        test_scores
-                    )
+                    if self.metric_names:
+                        self.results.loc[
+                            dataset_name, method_name, :, "train"
+                        ] = np.array(train_scores)
+                        self.results.loc[
+                            dataset_name, method_name, :, "test"
+                        ] = np.array(test_scores)
                 else:
-                    self.results.loc[dataset_name, method_name] = np.array(train_scores)
+                    if self.metric_names:
+                        self.results.loc[dataset_name, method_name] = np.array(
+                            train_scores
+                        )
 
         # TODO recursively remove empty directories
 
@@ -210,6 +215,9 @@ class Analysis:
 
     def _initialize_results(self):
         """Define a results object to store results generated during analysis."""
+        if not self.metric_names:
+            return None
+
         dims = ["datasets", "methods", "metrics", "splits"]
 
         # co-ords
@@ -324,6 +332,9 @@ class Analysis:
                             otherwise the mean and standard deviation of the k-fold validation is returned.
                             If `mean_folds` is set to False, all folds scores are returned.
         """
+        if not self.metric_names:
+            raise AttributeError("No results available to show.")
+
         if not metric:
             metric = metric_names[-1]
 
@@ -387,6 +398,9 @@ class Analysis:
         """
         # if ax is None:
         #     ax = plt.gca()
+        if not self.metric_names:
+            raise AttributeError("No results available to show.")
+
         metric = metric if metric else self.metric_names[0]
 
         if self.use_test_set:  # only test set

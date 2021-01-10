@@ -323,6 +323,47 @@ def test_result_cv(tmp_path):
         np.testing.assert_allclose(an_tree_max, tree_max, rtol=1e-13)
 
 
+# Test results when no metric
+def test_results_none(tmp_path):
+    linear = SklearnMethod(LinearRegression(), ["r2", "max_error"])
+    tree = SklearnMethod(
+        DecisionTreeRegressor(random_state=SEED),
+        ["r2", "max_error"],
+    )
+    dummy = SklearnMethod(DummyRegressor(), ["r2", "max_error"])
+    an = Analysis(
+        methods=[("linear", linear), ("tree", tree), ("dummy", dummy)],
+        metric_names=None,
+        datasets="regression",
+        n_datasets=3,
+        random_state=SEED,
+        use_test_set=True,
+        output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
+    )
+    an.run()
+    assert an.results == None
+
+    with pytest.raises(AttributeError):
+        an.get_result_as_df()
+
+    an = Analysis(
+        methods=[("linear", linear), ("tree", tree), ("dummy", dummy)],
+        metric_names=None,
+        datasets="regression",
+        n_datasets=3,
+        random_state=SEED,
+        use_test_set=False,
+        output_dir=tmp_path,
+        local_cache_dir=PMLB_CACHE,
+    )
+    an.run()
+    assert an.results == None
+
+    with pytest.raises(AttributeError):
+        an.get_result_as_df()
+
+
 # Test results as dataframe
 def test_get_results_as_df(regressor, tmp_path):
     skl = SklearnMethod(LinearRegression(), ["r2", "max_error"], export_model=True)
