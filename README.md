@@ -1,4 +1,4 @@
-# mlgauge
+![mlgauge](docs/logo/logo.png)
 
 ![Build](https://github.com/SuryaThiru/mlgauge/workflows/Python%20package/badge.svg)
 ![Formatting](https://github.com/SuryaThiru/mlgauge/workflows/Formatting/badge.svg)
