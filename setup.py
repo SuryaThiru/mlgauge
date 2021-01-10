@@ -25,6 +25,8 @@ setup(
     url="https://github.com/SuryaThiru/mlgauge",
     author="Surya Krishnamurthy",
     packages=find_packages(exclude=("tests")),
+    package_data={"mlgauge": ["VERSION"]},
+    include_package_data=True,
     license="License :: OSI Approved :: MIT License",
     install_requires=list_reqs(),
     extras_requre=["pytest", "black", "flake8"],
