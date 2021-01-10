@@ -3,6 +3,7 @@
 ![Build](https://github.com/SuryaThiru/mlgauge/workflows/Python%20package/badge.svg)
 ![Formatting](https://github.com/SuryaThiru/mlgauge/workflows/Formatting/badge.svg)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Documentation Status](https://readthedocs.org/projects/mlgauge/badge/?version=latest)](https://mlgauge.readthedocs.io/en/latest/?badge=latest)
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A simple library to benchmark performance of machine learning methods across different datasets. mlgauge is also a wrapper around [PMLB](https://github.com/EpistasisLab/pmlb) which provides benchmark datasets for machine learning.
@@ -36,9 +37,7 @@ from catboost import CatBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 import matplotlib.pyplot as plt
 
-
 SEED = 42
-
 
 methods = [
     ("xgboost", SklearnMethod(XGBClassifier(n_jobs=-1,verbose=0), ["accuracy", "f1_micro"])),
@@ -46,7 +45,6 @@ methods = [
     ("catboost", SklearnMethod(CatBoostClassifier(thread_count=-1,verbose=0), ["accuracy", "f1_micro"])),
     ("gbm", SklearnMethod(GradientBoostingClassifier(verbose=0), ["accuracy", "f1_micro"])),
 ]
-
 
 an = Analysis(
     methods=methods,
@@ -85,4 +83,4 @@ More examples are available in the documentation.
 
 ## Credits
 
-Logo designed by the talented [Neha Balsundaram](https://www.behance.net/nehabalasundaram).
+Logo designed by the talented [Neha Balasundaram](https://www.behance.net/nehabalasundaram).
