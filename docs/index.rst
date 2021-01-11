@@ -3,8 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-mlgauge: Benchmark ML methods across datasets
-=============================================
+.. figure:: logo/logo.png
+   :align: center
+
+Benchmark ML methods across datasets
+====================================
 
 .. toctree::
    :maxdepth: 2
@@ -23,6 +26,8 @@ mlgauge can help you if
 
 Installation
 ------------
+
+.. code-block:: bash
 
    pip install mlgauge
 
@@ -48,12 +53,13 @@ For example to use sklearn's linear regression and decision tree:
 
 .. code-block:: python
 
-    analysis = Analysis(methods=[linear, tree],
-                            metric_names=['r2 score', 'max error'],
-                            datasets='regression',
-                            n_datasets=10,
-                            random_state=0,
-						)
+    analysis = Analysis(
+        methods=[linear, tree],
+        metric_names=["r2 score", "max error"],
+        datasets="regression",
+        n_datasets=10,
+        random_state=0,
+    )
     analysis.run()
 
 Thanks to integration with PMLB, a random set of 10 regression datasets is automatically collected from the PMLB datasets collection. The datasets used are automatically populated to the ``analysis.datasets`` attribute on initialization.
