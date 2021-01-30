@@ -12,6 +12,8 @@ mlgauge can help you if
 * You are developing a machine learning method or an automl system and want to compare and analyze how it performs against other methods.
 * You are learning different machine learning methods and would like to understand how different methods behave under different conditions.
 
+Checkout the [documentation](https://mlgauge.readthedocs.io/) to learn more.
+
 
 ## Installation
 
@@ -22,7 +24,7 @@ pip install mlgauge
 ## Usage
 
 This is the workflow for setting up and running a comparison benchmark with mlgauge:
-1. Set up your methods, using the `Method` class. If your method follows the sklearn API, you can directly use the `SklearnMethod` which provides a typical sklearn workflow for estimators.
+1. Set up your methods by defining a `Method` class. If your method follows the sklearn API, you can directly use the `SklearnMethod` which provides a typical sklearn workflow for estimators.
 2. Set up the experiments with the `Analysis` class.
 3. Collect the results for further comparative analysis.
 

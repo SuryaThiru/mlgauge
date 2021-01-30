@@ -15,7 +15,7 @@ Benchmark ML methods across datasets
    :hidden:
 
    examples/index
-   reference/index
+   api
 
 A simple library to benchmark performance of machine learning methods across different datasets. mlgauge is also a wrapper around `PMLB <https://github.com/EpistasisLab/pmlb>`_ which provides benchmark datasets for machine learning.
 
