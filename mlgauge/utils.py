@@ -5,7 +5,7 @@ from tqdm.contrib import DummyTqdmFile
 
 @contextlib.contextmanager
 def redirect_stdout():
-    """redirect stdout and prevents from bloacking the progress bars.py
+    """redirect stdout and prevents from blocking the progress bars.py
 
     Reference: https://github.com/tqdm/tqdm#redirecting-writing
     """
