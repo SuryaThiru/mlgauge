@@ -1,15 +1,18 @@
 import os
-from copy import deepcopy
+import pmlb
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 import seaborn as sns
+
+from tqdm import tqdm
+from copy import deepcopy
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_random_state
-import pmlb
 
 from mlgauge.method import Method
+from mlgauge.utils import redirect_stdout, colors
 
 
 class Analysis:
@@ -93,7 +96,15 @@ class Analysis:
             self.datasets, str
         ):  # expand "all", "classification" or "regression"
             self.datasets = self._expand_dataset_str(self.datasets, n_datasets)
-            print("Collected datasets: ", self.datasets)
+
+            # display collected datasets
+            print(f"{colors.GREEN}Collected datasets{colors.ENDC}")
+            print(
+                "\n".join(
+                    f"{colors.CYAN}{{0: >2}}{colors.ENDC}: {{1}}".format(*k)
+                    for k in enumerate(self.datasets, 1)
+                )
+            )
         self.drop_na = drop_na
         self.local_cache_dir = local_cache_dir
 
@@ -114,46 +125,70 @@ class Analysis:
 
     def run(self):
         """Load the datasets, run the methods and collect the results."""
-        for dataset in self.datasets:
-            if self.use_test_set:
-                (
-                    dataset_name,
-                    feature_names,
-                    (X_train, y_train),
-                    (X_test, y_test),
-                ) = self._get_dataset(dataset)
-            else:
-                dataset_name, feature_names, (X_train, y_train) = self._get_dataset(
-                    dataset
+        # redirect stdout
+        with redirect_stdout() as stdout:
+
+            # linespacing logic (18 additional chars for title etc.)
+            maxl = min(max([len(x) for x in self.datasets]) + 18, 80)
+
+            # iterate datasets
+            datasets = tqdm(self.datasets, file=stdout, dynamic_ncols=True)
+            for dataset in datasets:
+                datasets.set_description(
+                    f"{{0: <{maxl}}}".format(
+                        f"{colors.GREEN}Datasets [{dataset}]{colors.ENDC}"
+                    )
                 )
-
-            for method_name, method in self.__methods:
-                method = deepcopy(method)
-                # set attributes for the dataset and method
-                method.set_test_set(self.use_test_set)
-                # create output directory
-                output_dir = os.path.join(self.output_dir, dataset_name, method_name)
-                os.makedirs(output_dir, exist_ok=True)
-                method.set_output_dir(output_dir)
-
-                # get training scores
-                train_scores = method.train(X_train, y_train, feature_names)
-
-                # get optional testing scores
                 if self.use_test_set:
-                    test_scores = method.test(X_test, y_test, feature_names)
-                    if self.metric_names:
-                        self.results.loc[
-                            dataset_name, method_name, :, "train"
-                        ] = np.array(train_scores)
-                        self.results.loc[
-                            dataset_name, method_name, :, "test"
-                        ] = np.array(test_scores)
+                    (
+                        dataset_name,
+                        feature_names,
+                        (X_train, y_train),
+                        (X_test, y_test),
+                    ) = self._get_dataset(dataset)
                 else:
-                    if self.metric_names:
-                        self.results.loc[dataset_name, method_name] = np.array(
-                            train_scores
+                    dataset_name, feature_names, (X_train, y_train) = self._get_dataset(
+                        dataset
+                    )
+
+                # iterate methods
+                methods = tqdm(
+                    self.__methods, leave=False, file=stdout, dynamic_ncols=True
+                )
+                for method_name, method in methods:
+                    methods.set_description(
+                        f"{{0: <{maxl}}}".format(
+                            f"{colors.CYAN}Models   [{method_name}]{colors.ENDC}"
                         )
+                    )
+                    method = deepcopy(method)
+                    # set attributes for the dataset and method
+                    method.set_test_set(self.use_test_set)
+                    # create output directory
+                    output_dir = os.path.join(
+                        self.output_dir, dataset_name, method_name
+                    )
+                    os.makedirs(output_dir, exist_ok=True)
+                    method.set_output_dir(output_dir)
+
+                    # get training scores
+                    train_scores = method.train(X_train, y_train, feature_names)
+
+                    # get optional testing scores
+                    if self.use_test_set:
+                        test_scores = method.test(X_test, y_test, feature_names)
+                        if self.metric_names:
+                            self.results.loc[
+                                dataset_name, method_name, :, "train"
+                            ] = np.array(train_scores)
+                            self.results.loc[
+                                dataset_name, method_name, :, "test"
+                            ] = np.array(test_scores)
+                    else:
+                        if self.metric_names:
+                            self.results.loc[dataset_name, method_name] = np.array(
+                                train_scores
+                            )
 
         # TODO recursively remove empty directories
 

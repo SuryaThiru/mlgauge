@@ -1,8 +1,8 @@
 import os
+import joblib
 
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import cross_validate
-import joblib
 
 
 class Method:
