@@ -125,7 +125,7 @@ class Analysis:
 
     def run(self):
         """Load the datasets, run the methods and collect the results."""
-        # rediredt stdout
+        # redirect stdout
         with redirect_stdout() as stdout:
 
             # linespacing logic (18 additional chars for title etc.)
