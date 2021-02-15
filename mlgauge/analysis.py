@@ -333,7 +333,7 @@ class Analysis:
         # convert to numpy arrays
         if isinstance(X, pd.DataFrame):
             X = X.values
-        if isinstance(y, pd.DataFrame):
+        if isinstance(y, pd.Series) or isinstance(y, pd.DataFrame):
             y = y.values
 
         # remove rows with NaNs
