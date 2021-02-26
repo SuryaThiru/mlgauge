@@ -1,13 +1,14 @@
 import os
-import pmlb
+from copy import deepcopy
 
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import xarray as xr
 import seaborn as sns
+import pmlb
+import openml
 
-from tqdm import tqdm
-from copy import deepcopy
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_random_state
 
@@ -34,16 +35,20 @@ class Analysis:
                                     result.loc['houses', 'linear', 'mse', 'test']
 
 
+                                .. note::
+
+                                    When integer IDs are specified for openml datasets, the ``results`` attribute's dataset key will be set as string.
+
                                 Refer the documentation of `xarray <https://xarray.pydata.org/en/stable/quick-overview.html>`_ for a more detailed usage.
     """
 
-    # TODO allow metrics to be null
     def __init__(
         self,
         methods,
         metric_names=None,
         datasets="all",
         n_datasets=20,
+        data_source="pmlb",
         drop_na=False,
         use_test_set=True,
         test_size=0.25,
@@ -66,7 +71,8 @@ class Analysis:
 
                                 **"regression"**: randomly select `n_datasets` from all available regression datasets in pmlb.
 
-                                **list of strings**: a list of valid pmlb dataset names.
+                                **list of strings**: a list of valid pmlb/openml dataset names.
+                                **list of ints**: a list of valid openml dataset IDs. This is recommended for openml to avoid issues with versions.
 
                                 **list of ('dataset_name', (X, y)) tuples**: Use the method to pass a custom dataset in the X y format.
 
@@ -75,7 +81,7 @@ class Analysis:
                             Here, X y could be a numpy array or a pandas DataFrame, using a DataFrame will allow the input feature names to be passed to the methods.
 
             n_datasets (int): Number of datasets to randomly sample from the available pmlb datasets. Ignored if `datasets` is not a string.
-
+            data_source (str): Source to fetch from when dataset names/IDs are passed. 'pmlb' or 'openml'
             drop_na (bool): If True will drop all rows in the dataset with null values.
             random_state (None, int or RandomState instance): seed for the PRNG.
             use_test_set (bool): If the methods use a testing set.
@@ -91,6 +97,12 @@ class Analysis:
         self.__methods = self._precheck_methods(methods)
         self.metric_names = metric_names
 
+        if data_source != "openml" and data_source != "pmlb":
+            raise TypeError("Data source must be 'openml' or 'pmlb'")
+        if data_source == "openml" and not isinstance(datasets, list):
+            raise TypeError("Provide list of dataset IDs/names for openml")
+
+        self.data_source = data_source
         self.datasets = self._precheck_dataset(datasets)
         if isinstance(
             self.datasets, str
@@ -129,27 +141,35 @@ class Analysis:
         with redirect_stdout() as stdout:
 
             # linespacing logic (18 additional chars for title etc.)
-            maxl = min(max([len(x) for x in self.datasets]) + 18, 80)
+            _datasets = map(
+                lambda x: x[0] if isinstance(x, tuple) else x, self.datasets
+            )  # get dataset names
+            maxl = min(max([len(str(x)) for x in _datasets]) + 18, 80)
 
             # iterate datasets
             datasets = tqdm(self.datasets, file=stdout, dynamic_ncols=True)
             for dataset in datasets:
+                _dataset_name = dataset[0] if isinstance(dataset, tuple) else dataset
                 datasets.set_description(
                     f"{{0: <{maxl}}}".format(
-                        f"{colors.GREEN}Datasets [{dataset}]{colors.ENDC}"
+                        f"{colors.GREEN}Datasets [{_dataset_name}]{colors.ENDC}"
                     )
                 )
                 if self.use_test_set:
                     (
                         dataset_name,
                         feature_names,
+                        category_indicator,
                         (X_train, y_train),
                         (X_test, y_test),
                     ) = self._get_dataset(dataset)
                 else:
-                    dataset_name, feature_names, (X_train, y_train) = self._get_dataset(
-                        dataset
-                    )
+                    (
+                        dataset_name,
+                        feature_names,
+                        category_indicator,
+                        (X_train, y_train),
+                    ) = self._get_dataset(dataset)
 
                 # iterate methods
                 methods = tqdm(
@@ -166,17 +186,25 @@ class Analysis:
                     method.set_test_set(self.use_test_set)
                     # create output directory
                     output_dir = os.path.join(
-                        self.output_dir, dataset_name, method_name
+                        self.output_dir, str(dataset_name), method_name
                     )
                     os.makedirs(output_dir, exist_ok=True)
                     method.set_output_dir(output_dir)
 
                     # get training scores
-                    train_scores = method.train(X_train, y_train, feature_names)
+                    train_scores = method.train(
+                        X_train, y_train, feature_names, category_indicator
+                    )
+
+                    # change keys for result to string
+                    if isinstance(dataset_name, int):
+                        dataset_name = str(dataset_name)
 
                     # get optional testing scores
                     if self.use_test_set:
-                        test_scores = method.test(X_test, y_test, feature_names)
+                        test_scores = method.test(
+                            X_test, y_test, feature_names, category_indicator
+                        )
                         if self.metric_names:
                             self.results.loc[
                                 dataset_name, method_name, :, "train"
@@ -208,13 +236,24 @@ class Analysis:
             for d in datasets:
                 if isinstance(d, str):
                     # should be a valid pmlb dataset name
-                    if d not in pmlb.dataset_names:
-                        raise ValueError(f"Dataset {d} not in pmlb")
+                    if self.data_source == "pmlb":
+                        if d not in pmlb.dataset_names:
+                            raise ValueError(f"Dataset {d} not in pmlb")
+
+                elif isinstance(d, int):
+                    if self.data_source != "openml":
+                        raise ValueError("Integer data IDs are only valid for OpenML")
+
                 elif isinstance(d, tuple):
                     if not isinstance(d[0], str):
                         raise ValueError(
                             "First element of the tuple must be the name of the dataset"
                         )
+                    if len(d) not in [2, 3]:
+                        raise ValueError(
+                            "Custom dataset input should be a tuple of length 2 or 3"
+                        )
+
                 else:
                     raise TypeError(f"Invalid type {type(d)} for dataset.")
         else:
@@ -275,19 +314,27 @@ class Analysis:
 
     def _get_dataset_name(self, dataset):
         """Get the supplied name of the dataset"""
-        if isinstance(dataset, str):
+        if isinstance(dataset, str) or isinstance(dataset, int):
             return dataset
         elif isinstance(dataset, tuple):
             return dataset[0]
 
     def _get_dataset(self, dataset):
         """Load and return the dataset as X, y numpy arrays"""
-        if isinstance(dataset, str):  # Use pmlb
-            data = pmlb.fetch_data(dataset, local_cache_dir=self.local_cache_dir)
+        category_indicator = None  # list indicating categorical columns
 
-            # Get feature names and get X,y numpy arrays
-            X = data.drop("target", axis=1)
-            y = data["target"]
+        if isinstance(dataset, str):  # Use pmlb or openml
+            if self.data_source == "pmlb":
+                data = pmlb.fetch_data(dataset, local_cache_dir=self.local_cache_dir)
+
+                # Get feature names and get X,y numpy arrays
+                X = data.drop("target", axis=1)
+                y = data["target"]
+            elif self.data_source == "openml":
+                X, y, category_indicator = self._fetch_openml_data(dataset)
+
+        elif isinstance(dataset, int):
+            X, y, category_indicator = self._fetch_openml_data(dataset)
 
         elif isinstance(dataset, tuple):
             if len(dataset) == 2:
@@ -300,9 +347,20 @@ class Analysis:
 
                 if self.use_test_set:
                     X_test, y_test = self._format_na(X_test, y_test)
-                    return dataset, feature_names, (X_train, y_train), (X_test, y_test)
+                    return (
+                        dataset,
+                        feature_names,
+                        category_indicator,
+                        (X_train, y_train),
+                        (X_test, y_test),
+                    )
                 else:
-                    return dataset, feature_names, (X_train, y_train)
+                    return (
+                        dataset,
+                        feature_names,
+                        category_indicator,
+                        (X_train, y_train),
+                    )
 
         if self.use_test_set:  # Perform train-test splits
             X_train, X_test, y_train, y_test = train_test_split(
@@ -315,11 +373,25 @@ class Analysis:
             feature_names = self._get_feature_names(X_train)
             X_train, y_train = self._format_na(X_train, y_train)
             X_test, y_test = self._format_na(X_test, y_test)
-            return dataset, feature_names, (X_train, y_train), (X_test, y_test)
+            return (
+                dataset,
+                feature_names,
+                category_indicator,
+                (X_train, y_train),
+                (X_test, y_test),
+            )
         else:  # Directly format and return train set
             feature_names = self._get_feature_names(X)
             X_train, y_train = self._format_na(X, y)
-            return dataset, feature_names, (X_train, y_train)
+            return dataset, feature_names, category_indicator, (X_train, y_train)
+
+    def _fetch_openml_data(self, dataset_id):
+        """Get the openml dataset with the category indicator"""
+        data = openml.datasets.get_dataset(dataset_id)
+        X, y, category_indicator, attribute_names = data.get_data(
+            dataset_format="dataframe", target=data.default_target_attribute
+        )
+        return X, y, category_indicator
 
     def _get_feature_names(self, X):
         """Get the list of feature names from input data"""

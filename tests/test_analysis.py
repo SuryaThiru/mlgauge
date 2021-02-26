@@ -60,7 +60,7 @@ class TestDataFormat:
         )
         assert len(an.datasets) == 5
 
-    def test_list(self, regressor, tmp_path):
+    def test_pmlb_list(self, regressor, tmp_path):
         # should work with a list of valid pmlb datasets names
         an = Analysis(
             methods=[("dummy", regressor)],
@@ -83,16 +83,34 @@ class TestDataFormat:
                 local_cache_dir=PMLB_CACHE,
             )
 
+    def test_openml_list(self, regressor, tmp_path):
+        # should work with a list of valid openml datasets names
+        an = Analysis(
+            methods=[("dummy", regressor)],
+            metric_names=["r2", "max_error"],
+            datasets=[
+                "wind",
+                "cpu_small",
+                1030,
+            ],  # sometimes failes due to issues with busy openml servers
+            data_source="openml",
+            random_state=SEED,
+            output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
+        )
+        assert len(an.datasets) == 3
+        an.run()
+
     def test_tuple(self, regressor, tmp_path):
         # should works with a list of (X, y) tuples
         datasets = [
             (
                 "data_1",
-                *make_regression(n_samples=200, n_features=5, random_state=SEED),
+                make_regression(n_samples=200, n_features=5, random_state=SEED),
             ),
             (
                 "data_2",
-                *make_regression(n_samples=1000, n_features=50, random_state=SEED),
+                make_regression(n_samples=1000, n_features=50, random_state=SEED),
             ),
         ]
         an = Analysis(
@@ -110,16 +128,16 @@ class TestDataFormat:
         datasets = [
             (
                 "data_1",
-                *make_regression(n_samples=200, n_features=5, random_state=SEED),
+                make_regression(n_samples=200, n_features=5, random_state=SEED),
             ),
             (
                 "data_2",
-                *make_regression(n_samples=1000, n_features=50, random_state=SEED),
+                make_regression(n_samples=1000, n_features=50, random_state=SEED),
             ),
         ]
 
         def test_split(data):
-            name, X, y = data
+            name, (X, y) = data
             X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=SEED)
             return name, (X_train, y_train), (X_test, y_test)
 
@@ -135,27 +153,25 @@ class TestDataFormat:
         )
         assert len(an.datasets) == 2
 
-    def test_mixed(self, regressor, tmp_path):
+    def test_pmlb_mixed(self, regressor, tmp_path):
         # should work with a mix of strings, tuples, tuple of tuples
         datasets = [
             (
                 "data_1",
-                *make_regression(n_samples=200, n_features=5, random_state=SEED),
+                make_regression(n_samples=200, n_features=5, random_state=SEED),
             ),
             (
                 "data_2",
-                *make_regression(n_samples=1000, n_features=50, random_state=SEED),
+                make_regression(n_samples=1000, n_features=50, random_state=SEED),
             ),
         ]
 
         def test_split(data):
-            name, X, y = data
+            name, (X, y) = data
             X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=SEED)
             return name, (X_train, y_train), (X_test, y_test)
 
-        datasets = (
-            list(map(test_split, datasets)) + datasets + ["adult", "cars", "pima"]
-        )
+        datasets = list(map(test_split, datasets)) + datasets + ["adult"]
 
         an = Analysis(
             methods=[("dummy", regressor)],
@@ -164,8 +180,10 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            use_test_set=True,
         )
-        assert len(an.datasets) == 7
+        assert len(an.datasets) == 5
+        an.run()
 
 
 # Test dropna
@@ -176,7 +194,7 @@ class MockMethodNA(Method):
         self.drop_na = dropna
         super().__init__()
 
-    def train(self, X, y, feature_names):
+    def train(self, X, y, feature_names, category_indicator=None):
         dat = np.hstack([X, y.reshape(-1, 1)])
         if self.drop_na:
             assert not np.isnan(dat).any(), "data has missing values"

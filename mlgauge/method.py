@@ -43,26 +43,28 @@ class Method:
         """
         self.use_test_set = use_test_set
 
-    def train(self, X_train, y_train, feature_names=None):
+    def train(self, X_train, y_train, feature_names=None, category_indicator=None):
         """Train the model and return the training score.
 
         Args:
             X_train (array): array of training vector.
             y_train (array): array of target vector.
-            feature_names (list): list of names of the features in X_train
+            feature_names (list): list of names of the features in X_train.
+            category_indicator (list): list of boolean indicating whether a feature is a categorical variable.
 
         Raises:
             NotImplementedError: raised when called from the base class.
         """
         raise NotImplementedError
 
-    def test(self, X_test, y_test, feature_names=None):
+    def test(self, X_test, y_test, feature_names=None, category_indicator=None):
         """Evaluate the model and return the test score.
 
         Args:
             X_test (array): array of training vector.
             y_test (array): array of target vector.
             feature_names (list): list of names of the features in X_test
+            category_indicator (list): list of boolean indicating whether a feature is a categorical variable.
 
         Raises:
             NotImplementedError: raised when called from the base class.
@@ -90,13 +92,14 @@ class SklearnMethod(Method):
         self.export_model = export_model
         self.cv = cv
 
-    def train(self, X_train, y_train, feature_names=None):
+    def train(self, X_train, y_train, feature_names=None, category_indicator=None):
         """Train the model and return the training score.
 
         Args:
             X_train (array): array of training vector.
             y_train (array): array of target vector.
             feature_names (list): list of names of the features in X_train
+            category_indicator (list): list of boolean indicating whether a feature is a categorical variable.
 
         Returns:
             list: list of metric scores evaluated on the training data.
@@ -135,13 +138,14 @@ class SklearnMethod(Method):
 
             return [scores_dict["test_" + key] for key in self.metrics]
 
-    def test(self, X_test, y_test, feature_names=None):
+    def test(self, X_test, y_test, feature_names=None, category_indicator=None):
         """Evaluate the model and return the test score.
 
         Args:
             X_test (array): array of training vector.
             y_test (array): array of target vector.
             feature_names (list): list of names of the features in X_test
+            category_indicator (list): list of boolean indicating whether a feature is a categorical variable.
 
         Returns:
             list: list of metric scores evaluated on the testing data.
