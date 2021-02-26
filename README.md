@@ -6,7 +6,7 @@
 [![Documentation Status](https://readthedocs.org/projects/mlgauge/badge/?version=latest)](https://mlgauge.readthedocs.io/en/latest/?badge=latest)
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A simple library to benchmark performance of machine learning methods across different datasets. mlgauge is also a wrapper around [PMLB](https://github.com/EpistasisLab/pmlb) which provides benchmark datasets for machine learning.
+A simple library to benchmark performance of machine learning methods across different datasets. mlgauge is also a wrapper around [PMLB](https://github.com/EpistasisLab/pmlb) and [OpenML](https://www.openml.org/) which provide benchmark datasets for machine learning.
 
 mlgauge can help you if
 * You are developing a machine learning method or an automl system and want to compare and analyze how it performs against other methods.
@@ -81,7 +81,7 @@ an.plot_results("f1 score")
 
 ![boosting plot](docs/examples/images/boosting.png)
 
-More examples are available in the documentation.
+More examples are available in the [documentation](https://mlgauge.readthedocs.io/).
 
 ## Credits
 
