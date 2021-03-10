@@ -314,8 +314,10 @@ class Analysis:
 
     def _get_dataset_name(self, dataset):
         """Get the supplied name of the dataset"""
-        if isinstance(dataset, str) or isinstance(dataset, int):
+        if isinstance(dataset, str):
             return dataset
+        elif isinstance(dataset, int):
+            return str(dataset)
         elif isinstance(dataset, tuple):
             return dataset[0]
 

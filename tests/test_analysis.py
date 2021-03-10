@@ -185,6 +185,39 @@ class TestDataFormat:
         assert len(an.datasets) == 5
         an.run()
 
+    def test_openml_mixed(self, regressor, tmp_path):
+        # should work with a mix of strings, tuples, tuple of tuples
+        datasets = [
+            (
+                "data_1",
+                make_regression(n_samples=200, n_features=5, random_state=SEED),
+            ),
+            (
+                "data_2",
+                make_regression(n_samples=1000, n_features=50, random_state=SEED),
+            ),
+        ]
+
+        def test_split(data):
+            name, (X, y) = data
+            X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=SEED)
+            return name, (X_train, y_train), (X_test, y_test)
+
+        datasets = list(map(test_split, datasets)) + datasets + ["cpu_small", 1030]
+
+        an = Analysis(
+            methods=[("dummy", regressor)],
+            metric_names=["r2", "max_error"],
+            datasets=datasets,
+            data_source="openml",
+            random_state=SEED,
+            output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
+            use_test_set=True,
+        )
+        assert len(an.datasets) == 6
+        an.run()
+
 
 # Test dropna
 class MockMethodNA(Method):
