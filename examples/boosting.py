@@ -15,16 +15,16 @@ SEED = 42
 methods = [
     (
         "xgboost",
-        SklearnMethod(XGBClassifier(n_jobs=-1, verbose=0), ["accuracy", "f1_micro"]),
+        SklearnMethod(XGBClassifier(n_jobs=-1, verbosity=0), ["accuracy", "f1_micro"]),
     ),
     (
         "lightgbm",
-        SklearnMethod(LGBMClassifier(n_jobs=-1, verbose=0), ["accuracy", "f1_micro"]),
+        SklearnMethod(LGBMClassifier(n_jobs=-1, silent=True), ["accuracy", "f1_micro"]),
     ),
     (
         "catboost",
         SklearnMethod(
-            CatBoostClassifier(thread_count=-1, verbose=0), ["accuracy", "f1_micro"]
+            CatBoostClassifier(thread_count=-1, verbose=False), ["accuracy", "f1_micro"]
         ),
     ),
     (
@@ -41,6 +41,7 @@ an = Analysis(
     n_datasets=10,
     random_state=SEED,
     # use_test_set=False   # to use cross-validation
+    drop_na=True,
 )
 an.run()
 

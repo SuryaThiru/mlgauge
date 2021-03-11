@@ -28,7 +28,7 @@ class GBImportancePlot(Method):
         else:
             raise TypeError("gbmestimator must be an XGBClassifier or LGBMClassifier")
 
-    def train(self, X_train, y_train, feature_names):
+    def train(self, X_train, y_train, feature_names, category_indicator=None):
         # passing dataframes as input to xgboost/lightgbm lets the plotting function automatically add tick labels
         X_train = pd.DataFrame(X_train, columns=feature_names)
         self.gbmestimator.fit(X_train, y_train)
@@ -48,8 +48,8 @@ class GBImportancePlot(Method):
 
 
 methods = [
-    ("xgb", GBImportancePlot(XGBClassifier(n_jobs=-1, verbose=0))),
-    ("lgb", GBImportancePlot(LGBMClassifier(n_jobs=-1, verbose=0))),
+    ("xgb", GBImportancePlot(XGBClassifier(n_jobs=-1, verbosity=0))),
+    ("lgb", GBImportancePlot(LGBMClassifier(n_jobs=-1, silent=True))),
 ]
 
 an = Analysis(

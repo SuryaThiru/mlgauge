@@ -8,6 +8,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 import numpy as np
+import pandas as pd
 import pmlb
 import pytest
 
@@ -230,28 +231,58 @@ class MockMethodNA(Method):
     def train(self, X, y, feature_names, category_indicator=None):
         dat = np.hstack([X, y.reshape(-1, 1)])
         if self.drop_na:
-            assert not np.isnan(dat).any(), "data has missing values"
+            assert not pd.isnull(dat).any(), "data should not have missing values"
         else:
-            assert np.isnan(dat).any(), "data does not have missing values"
+            assert pd.isnull(dat).any(), "data should have missing values"
 
 
-@pytest.mark.parametrize("dropna", [True, False])
-def test_dropna(dropna, tmp_path):
-    X, y = make_regression(n_samples=200, n_features=5, random_state=SEED)
-    X[0, 2] = np.nan
-    y[3] = np.nan
+class TestDropNa:
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_pmlb(self, dropna, tmp_path):
+        an = Analysis(
+            methods=[("mock", MockMethodNA(dropna=dropna))],
+            metric_names=["r2", "max_error"],
+            datasets=['penguins'],
+            random_state=SEED,
+            drop_na=dropna,
+            use_test_set=False,
+            output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
+        )
+        an.run()
 
-    an = Analysis(
-        methods=[("mock", MockMethodNA(dropna=dropna))],
-        metric_names=["r2", "max_error"],
-        datasets=[("data_with_na", (X, y))],
-        random_state=SEED,
-        drop_na=dropna,
-        use_test_set=False,
-        output_dir=tmp_path,
-        local_cache_dir=PMLB_CACHE,
-    )
-    an.run()
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_openml(self, dropna, tmp_path):
+        an = Analysis(
+            methods=[("mock", MockMethodNA(dropna=dropna))],
+            metric_names=["r2", "max_error"],
+            data_source='openml',
+            datasets=['breast-cancer'],
+            random_state=SEED,
+            drop_na=dropna,
+            use_test_set=False,
+            output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
+        )
+        an.run()
+
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_custom(self, dropna, tmp_path):
+        X, y = make_regression(n_samples=200, n_features=5, random_state=SEED)
+        X[0, 2] = np.nan
+        y[3] = np.nan
+
+        an = Analysis(
+            methods=[("mock", MockMethodNA(dropna=dropna))],
+            metric_names=["r2", "max_error"],
+            datasets=[("data_with_na", (X, y))],
+            random_state=SEED,
+            drop_na=dropna,
+            use_test_set=False,
+            output_dir=tmp_path,
+            local_cache_dir=PMLB_CACHE,
+        )
+        an.run()
 
 
 # Test output directory

@@ -327,7 +327,9 @@ class Analysis:
 
         if isinstance(dataset, str):  # Use pmlb or openml
             if self.data_source == "pmlb":
-                data = pmlb.fetch_data(dataset, local_cache_dir=self.local_cache_dir)
+                data = pmlb.fetch_data(
+                    dataset, local_cache_dir=self.local_cache_dir, dropna=False
+                )
 
                 # Get feature names and get X,y numpy arrays
                 X = data.drop("target", axis=1)
@@ -406,13 +408,13 @@ class Analysis:
         """Convert data to numpy arrays and drop null valued rows"""
         # convert to numpy arrays
         if isinstance(X, pd.DataFrame):
-            X = X.values
+            X = X.to_numpy()
         if isinstance(y, pd.Series) or isinstance(y, pd.DataFrame):
-            y = y.values
+            y = y.to_numpy()
 
         # remove rows with NaNs
         if self.drop_na:
-            idx = ~(np.isnan(X).any(axis=1) | np.isnan(y).any())
+            idx = ~(pd.isnull(X).any(axis=1) | pd.isnull(y))
             X, y = X[idx], y[idx]
 
         return X, y
