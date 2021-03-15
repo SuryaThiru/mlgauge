@@ -55,6 +55,7 @@ class Analysis:
         random_state=None,
         output_dir=None,
         local_cache_dir=None,
+        disable_progress=False,
     ):
         """Initialize analysis.
 
@@ -134,6 +135,7 @@ class Analysis:
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.results = self._initialize_results()
+        self.disable_progress = disable_progress
 
     def run(self):
         """Load the datasets, run the methods and collect the results."""
@@ -147,7 +149,12 @@ class Analysis:
             maxl = min(max([len(str(x)) for x in _datasets]) + 18, 80)
 
             # iterate datasets
-            datasets = tqdm(self.datasets, file=stdout, dynamic_ncols=True)
+            datasets = tqdm(
+                self.datasets,
+                file=stdout,
+                dynamic_ncols=True,
+                disable=self.disable_progress,
+            )
             for dataset in datasets:
                 _dataset_name = dataset[0] if isinstance(dataset, tuple) else dataset
                 datasets.set_description(
@@ -173,7 +180,11 @@ class Analysis:
 
                 # iterate methods
                 methods = tqdm(
-                    self.__methods, leave=False, file=stdout, dynamic_ncols=True
+                    self.__methods,
+                    leave=False,
+                    file=stdout,
+                    dynamic_ncols=True,
+                    disable=self.disable_progress,
                 )
                 for method_name, method in methods:
                     methods.set_description(
