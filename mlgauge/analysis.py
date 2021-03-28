@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from datetime import datetime
 
 from tqdm import tqdm
 import numpy as np
@@ -128,10 +129,9 @@ class Analysis:
         self.output_dir = (
             output_dir if output_dir else os.path.join(os.getcwd(), "output")
         )
-        i = 1
-        while os.path.exists(os.path.join(self.output_dir, f"Analysis_{i}")):
-            i += 1
-        self.output_dir = os.path.join(self.output_dir, f"Analysis_{i}")
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.output_dir = os.path.join(self.output_dir, timestamp)
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.results = self._initialize_results()

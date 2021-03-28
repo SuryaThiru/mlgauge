@@ -1,6 +1,7 @@
 import tempfile
 import os
 import itertools
+from glob import glob
 
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
@@ -36,6 +37,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 5
 
@@ -47,6 +49,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 5
 
@@ -58,6 +61,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 5
 
@@ -70,6 +74,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 5
 
@@ -82,6 +87,7 @@ class TestDataFormat:
                 random_state=SEED,
                 output_dir=tmp_path,
                 local_cache_dir=PMLB_CACHE,
+                disable_progress=True,
             )
 
     def test_openml_list(self, regressor, tmp_path):
@@ -98,6 +104,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 3
         an.run()
@@ -121,6 +128,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 2
 
@@ -151,6 +159,7 @@ class TestDataFormat:
             random_state=SEED,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         assert len(an.datasets) == 2
 
@@ -182,6 +191,7 @@ class TestDataFormat:
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
             use_test_set=True,
+            disable_progress=True,
         )
         assert len(an.datasets) == 5
         an.run()
@@ -215,6 +225,7 @@ class TestDataFormat:
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
             use_test_set=True,
+            disable_progress=True,
         )
         assert len(an.datasets) == 6
         an.run()
@@ -242,12 +253,13 @@ class TestDropNa:
         an = Analysis(
             methods=[("mock", MockMethodNA(dropna=dropna))],
             metric_names=["r2", "max_error"],
-            datasets=['penguins'],
+            datasets=["penguins"],
             random_state=SEED,
             drop_na=dropna,
             use_test_set=False,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         an.run()
 
@@ -256,13 +268,14 @@ class TestDropNa:
         an = Analysis(
             methods=[("mock", MockMethodNA(dropna=dropna))],
             metric_names=["r2", "max_error"],
-            data_source='openml',
-            datasets=['breast-cancer'],
+            data_source="openml",
+            datasets=["breast-cancer"],
             random_state=SEED,
             drop_na=dropna,
             use_test_set=False,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         an.run()
 
@@ -281,6 +294,7 @@ class TestDropNa:
             use_test_set=False,
             output_dir=tmp_path,
             local_cache_dir=PMLB_CACHE,
+            disable_progress=True,
         )
         an.run()
 
@@ -304,10 +318,12 @@ def test_output_dir(tmp_path):
         random_state=SEED,
         output_dir=test_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
-    out_dir = os.path.join(test_path, "Analysis_1")
+    pat = glob(os.path.join(test_path, "*"))
+    out_dir = os.path.join(test_path, pat[0])
     exports = map(
         lambda x: os.path.join(out_dir, x, "dummy", "estimator.joblib"),
         ["adult", "cars", "pima"],
@@ -326,10 +342,12 @@ def test_output_dir(tmp_path):
         output_dir=test_path,
         local_cache_dir=PMLB_CACHE,
         use_test_set=False,
+        disable_progress=True,
     )
     an.run()
 
-    out_dir = os.path.join(test_path, "Analysis_1")
+    pat = glob(os.path.join(test_path, "*"))
+    out_dir = os.path.join(test_path, pat[0])
     exports = map(
         lambda x: os.path.join(out_dir, x[0], "dummy", f"estimator_fold_{x[1]}.joblib"),
         itertools.product(["adult", "cars", "pima"], range(1, n_folds + 1)),
@@ -356,6 +374,7 @@ def test_result_test_split(tmp_path):
         use_test_set=True,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
@@ -404,6 +423,7 @@ def test_result_cv(tmp_path):
         use_test_set=False,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
@@ -447,6 +467,7 @@ def test_get_results_as_df(regressor, tmp_path):
         random_state=SEED,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
@@ -478,6 +499,7 @@ def test_get_results_as_df(regressor, tmp_path):
         random_state=SEED,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
@@ -535,6 +557,7 @@ def test_results_none(tmp_path):
         use_test_set=True,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
@@ -556,6 +579,7 @@ def test_results_none(tmp_path):
         use_test_set=False,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
 
@@ -580,6 +604,7 @@ def test_plot_results(regressor, tmp_path):
         random_state=SEED,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
     ax = an.plot_results()
@@ -595,6 +620,7 @@ def test_plot_results(regressor, tmp_path):
         random_state=SEED,
         output_dir=tmp_path,
         local_cache_dir=PMLB_CACHE,
+        disable_progress=True,
     )
     an.run()
     ax = an.plot_results()
