@@ -287,14 +287,16 @@ class Analysis:
     def _expand_dataset_str(self, dataset_str, n_datasets):
         """Convert the dataset string to list of pmlb dataset names"""
         if dataset_str == "all":
-            datasets = self.random_state.choice(pmlb.dataset_names, n_datasets)
+            datasets = self.random_state.choice(
+                pmlb.dataset_names, n_datasets, replace=False
+            )
         elif dataset_str == "classification":
             datasets = self.random_state.choice(
-                pmlb.classification_dataset_names, n_datasets
+                pmlb.classification_dataset_names, n_datasets, replace=False
             )
         elif dataset_str == "regression":
             datasets = self.random_state.choice(
-                pmlb.regression_dataset_names, n_datasets
+                pmlb.regression_dataset_names, n_datasets, replace=False
             )
         return datasets
 
